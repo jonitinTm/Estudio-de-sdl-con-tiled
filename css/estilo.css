@@ -230,3 +230,37 @@ input.query { width: 100%; font-family: var(--font-mono); font-size: .82rem; pad
   .lesson-head { padding: 18px 16px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* ---------- Práctica guiada ---------- */
+.head-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 18px; font-size: .85rem; color: var(--ink-3); }
+.prac { margin: 48px 0 24px; border: 2px solid var(--accent); border-radius: var(--radius); background: var(--surface); overflow: hidden; scroll-margin-top: 70px; }
+.prac-head { padding: 18px 20px; background: var(--accent-soft); border-bottom: 1px solid var(--line); }
+.prac-eyebrow { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.prac-prog { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: .82rem; color: var(--ink-2); flex-wrap: wrap; }
+.prac-prog .bar { flex: 1 1 140px; background: var(--surface); }
+.paso { padding: 18px 20px; border-top: 1px solid var(--line); }
+.paso:first-of-type { border-top: 0; }
+.paso.resuelto { opacity: .78; }
+.paso.actual { background: var(--surface); }
+.paso h3 { margin-top: 2px; }
+.paso-num { font-family: var(--font-display); color: var(--amber); font-size: .95rem; }
+.slot { font: inherit; font-family: var(--font-mono); font-size: .84rem; color: var(--code-str); background: rgba(255,255,255,.07); border: 1px dashed var(--code-com); border-radius: 3px; padding: 0 4px; margin: 0 1px; max-width: 100%; }
+.slot:focus { outline: 2px solid var(--code-kw); outline-offset: 1px; border-style: solid; }
+.slot.good { border: 1px solid #4cc782; color: #9be7b8; }
+.slot.bad { border: 1px solid #f07b6e; background: rgba(240,123,110,.15); }
+.prac-ta { width: 100%; min-height: 120px; font-family: var(--font-mono); font-size: .84rem; line-height: 1.6; tab-size: 4; background: var(--code-bg); color: var(--code-ink); border: 2px dashed var(--code-com); border-radius: var(--radius); padding: 12px 14px; resize: vertical; margin: 4px 0 8px; }
+.prac-ta:focus { outline: none; border-style: solid; border-color: var(--code-kw); }
+.prac-ta.good { border: 2px solid var(--ok); }
+.prac-ta.bad { border: 2px solid var(--bad); }
+.paso-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.paso-pistas { display: grid; gap: 6px; margin-top: 10px; }
+.pista { background: var(--amber-soft); border-left: 3px solid var(--amber); padding: 8px 12px; border-radius: 0 4px 4px 0; font-size: .92rem; }
+.paso-fb { margin-top: 12px; padding: 12px 14px; border-radius: var(--radius); font-size: .93rem; display: grid; gap: 8px; justify-items: start; }
+.paso-fb ul { margin: 0; padding-left: 1.2em; }
+.paso-fb.ok { background: var(--ok-soft); border: 1px solid var(--ok); }
+.paso-fb.bad { background: var(--bad-soft); border: 1px solid var(--bad); }
+.paso-fb.info { background: var(--amber-soft); border: 1px solid var(--amber); }
+.porque { color: var(--ink-2); }
+.prac-fin { padding: 18px 20px; background: var(--ok-soft); border-top: 1px solid var(--ok); }
+/* Sin ligaduras: que "->" y "!=" se vean tal cual se escriben */
+code, pre, kbd, .slot, .prac-ta, textarea.xml, input.query, .log, .readout { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }

@@ -1,7 +1,7 @@
 # Curso SDL + Tiled
 
 Curso web personal e incremental para aprender SDL3 + Tiled + C++ siguiendo el temario de Desarrollo de Videojuegos (L02–L12).
-Cada lección explica el concepto, tiene una demo interactiva en el navegador, recorre los TODOs del handout con la solución escondida y termina con un test.
+Cada lección explica el concepto, tiene una demo interactiva en el navegador, una **práctica guiada** en la que escribes tú el código paso a paso (con comprobación, pistas y solución), los TODOs del handout resueltos como referencia y un test final.
 
 ## Cómo abrirlo
 
@@ -32,7 +32,9 @@ index.html                 página única; carga el núcleo y las lecciones
 css/estilo.css             estilos (tema claro y oscuro)
 js/nucleo.js               router por #hash, progreso, resaltado de código, quizzes, utilidades de canvas
 js/pathfinding_demo.js     demo de BFS/Dijkstra compartida por L11 y L12
+js/practica.js             motor de prácticas guiadas (huecos, escribir código, pistas, comprobación)
 lecciones/LXX_*.js         una lección por archivo
+practicas/PXX_*.js         la práctica guiada de cada lección
 ```
 
 ## Añadir una lección nueva
@@ -52,3 +54,29 @@ lecciones/LXX_*.js         una lección por archivo
 2. Añade `<script src="lecciones/L13_nombre.js"></script>` al final de `index.html`.
 
 Las lecciones aparecen en el orden en que se cargan los `<script>`.
+
+## Añadir una práctica guiada
+
+Crea `practicas/P13_nombre.js` y añade su `<script>` al final de `index.html`:
+
+```js
+Curso.practica({
+  leccion: "l13", titulo: "…", intro: "…",
+  pasos: [
+    { // rellenar huecos: §s1§ en el código
+      t: "Título del paso", exp: "<p>Explicación</p>",
+      code: String.raw`frontier.§s1§;`,
+      slots: { s1: { ok: ["pop()"], err: [[/^pop$/, "Faltan los paréntesis"]] } },
+      pistas: ["Pista 1", "Pista 2"], bien: "<p>Por qué funciona</p>"
+    },
+    { // escribir líneas completas: los regex se comprueban sobre el código SIN espacios
+      t: "…", exp: "…",
+      escribe: { antes: "…", despues: "…", sol: "…",
+                 checks: [[/frontier\.push\(\w+\);/, "Mensaje si falta"]],
+                 prohibido: [[/push_back/, "Mensaje si aparece"]] }
+    }
+  ]
+});
+```
+
+`Curso._prac.autotest()` (en la consola del navegador) comprueba que todas las soluciones pasan sus propias comprobaciones.

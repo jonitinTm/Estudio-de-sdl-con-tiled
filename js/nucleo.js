@@ -213,7 +213,8 @@
       <h2>Cómo usar este curso</h2>
       <ol>
         <li><strong>Lee el concepto</strong> y juega con la demo. Las demos están hechas en el navegador, pero imitan lo que hará tu motor en C++.</li>
-        <li><strong>Haz los TODOs</strong> en el handout de Visual Studio. Intenta escribir el código tú antes de abrir “Ver solución”.</li>
+        <li><strong>Haz la práctica guiada</strong> de la lección: te voy pidiendo el código paso a paso, lo escribes tú, pulsas <em>Comprobar</em> y te digo qué falla. Hay pistas si te atascas.</li>
+        <li><strong>Pásalo al handout</strong> de Visual Studio. Los TODOs de cada lección tienen la solución completa como referencia.</li>
         <li><strong>Responde el test</strong> del final. Si fallas una pregunta, vuelve a la sección que explica esa idea.</li>
         <li><strong>Marca la lección como hecha</strong> para ver tu progreso en la barra lateral (se guarda en este navegador).</li>
       </ol>
@@ -242,14 +243,22 @@
     } else {
       const l = lecciones[idx], prev = lecciones[idx - 1], next = lecciones[idx + 1];
       const hecho = !!hechos()[l.id];
+      // Práctica guiada (js/practica.js): se inserta antes del test final
+      let cuerpo = typeof l.html === "function" ? l.html() : l.html;
+      const prac = window.Curso._prac ? window.Curso._prac.html(l.id) : "";
+      if (prac) {
+        const marca = "<h2>Comprueba lo que sabes</h2>";
+        cuerpo = cuerpo.includes(marca) ? cuerpo.replace(marca, prac + marca) : cuerpo + prac;
+      }
       page.innerHTML = `
         <header class="lesson-head">
           <div class="eyebrow"><b>Lección ${l.num}</b><span>${l.grupo}</span>${l.pdf ? `<span>PDF: ${l.pdf}</span>` : ""}</div>
           <h1>${l.titulo}</h1>
           <p class="lead">${l.intro}</p>
           ${l.objetivos ? `<ul class="goals">${l.objetivos.map((o) => `<li>${o}</li>`).join("")}</ul>` : ""}
+          ${prac ? `<div class="head-actions"><button type="button" class="btn primary" data-goto=".prac">✎ Ir a la práctica guiada</button><span>${window.Curso._prac.resumen(l.id)}</span></div>` : ""}
         </header>
-        <article>${typeof l.html === "function" ? l.html() : l.html}</article>
+        <article>${cuerpo}</article>
         <div class="lesson-foot">
           ${prev ? `<a class="btn" href="#${prev.id}">← ${prev.num} ${prev.corto || prev.titulo}</a>` : `<a class="btn" href="#inicio">← Portada</a>`}
           <button type="button" class="btn done-toggle ${hecho ? "on" : ""}" id="done-btn">${hecho ? "✓ Lección completada" : "Marcar como completada"}</button>
@@ -258,6 +267,7 @@
       document.title = `${l.num} ${l.corto || l.titulo} · Curso SDL + Tiled`;
       document.getElementById("done-btn").onclick = (e) => { const v = !hechos()[l.id]; marcar(l.id, v); e.currentTarget.classList.toggle("on", v); e.currentTarget.textContent = v ? "✓ Lección completada" : "Marcar como completada"; };
       if (l.init) { try { l.init(page); } catch (err) { console.error("Error iniciando demo de " + l.id, err); } }
+      if (prac) { try { window.Curso._prac.init(page, l.id); } catch (err) { console.error("Error iniciando práctica de " + l.id, err); } }
     }
     pintarIndice();
     window.scrollTo(0, 0);
@@ -275,6 +285,8 @@
       } catch (err) { selectText(el); }
       return;
     }
+    const go = e.target.closest("[data-goto]");
+    if (go) { const t = document.querySelector(go.dataset.goto); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     const b = e.target.closest(".q-opts button");
     if (b) {
       const q = b.closest(".q"), c = +q.dataset.c, j = +b.dataset.j;
