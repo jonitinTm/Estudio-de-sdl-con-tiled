@@ -3,6 +3,10 @@
 Curso web personal e incremental para aprender SDL3 + Tiled + C++ siguiendo el temario de Desarrollo de Videojuegos (L02–L12).
 Cada lección explica el concepto, tiene una demo interactiva en el navegador, una **práctica guiada** en la que escribes tú el código paso a paso (con comprobación, pistas y solución), los TODOs del handout resueltos como referencia y un test final.
 
+## Otros cursos de este repositorio
+
+- [`box2d-carreras/`](box2d-carreras/): Box2D 2.4 + Raylib para el Proyecto 02 (juego de carreras top-down).
+
 ## Cómo abrirlo
 
 No necesita instalar nada: abre `index.html` con doble clic (Chrome, Edge o Firefox).
