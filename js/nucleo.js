@@ -7,13 +7,17 @@
 (function () {
   "use strict";
 
+  // Configuración opcional por curso (otro temario en otra carpeta): window.CURSO = { clave, titulo, portada(ctx) }
+  const CFG = window.CURSO || {};
+  const PREF = (CFG.clave || "sdlcurso") + ".";
+  const TITULO = CFG.titulo || "Curso SDL + Tiled";
   const lecciones = [];
   const limpiezas = []; // funciones a ejecutar al salir de una lección (parar animaciones, listeners…)
 
   // ---------- Almacenamiento seguro ----------
   const store = {
-    get(k, def) { try { const v = localStorage.getItem("sdlcurso." + k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
-    set(k, v) { try { localStorage.setItem("sdlcurso." + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
+    get(k, def) { try { const v = localStorage.getItem(PREF + k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
+    set(k, v) { try { localStorage.setItem(PREF + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
   };
 
   // ---------- Escapar HTML ----------
@@ -21,7 +25,7 @@
 
   // ---------- Resaltado de sintaxis mínimo (C++, XML, pseudo) ----------
   const KW = new Set("if else for while do switch case default break continue return class struct enum public private protected virtual override const static new delete this nullptr true false using namespace template typename typedef sizeof auto inline friend operator explicit noexcept final constexpr".split(" "));
-  const TY = new Set("int float double bool void char unsigned long short uint8_t uint32_t int32_t uint64_t Uint32 Uint64 size_t std string vector list queue priority_queue shared_ptr unique_ptr weak_ptr make_shared map unordered_map pair Vector2D SDL_Texture SDL_Rect SDL_FRect SDL_Window SDL_Renderer SDL_Event Timer PerfTimer Engine Module Entity Player Item Enemy EntityManager EntityType Map MapData MapLayer TileSet Properties Property PhysBody Physics ColliderType bodyType Animation AnimationSet Pathfinding b2BodyId b2Vec2 b2WorldId pugi xml_document xml_node xml_attribute xml_parse_result Scene Render Textures Input Window Audio KeyState".split(" "));
+  const TY = new Set("int float double bool void char unsigned long short uint8_t uint32_t int32_t uint64_t Uint32 Uint64 size_t std string vector list queue priority_queue shared_ptr unique_ptr weak_ptr make_shared map unordered_map pair Vector2D SDL_Texture SDL_Rect SDL_FRect SDL_Window SDL_Renderer SDL_Event Timer PerfTimer Engine Module Entity Player Item Enemy EntityManager EntityType Map MapData MapLayer TileSet Properties Property PhysBody Physics ColliderType bodyType Animation AnimationSet Pathfinding b2BodyId b2Vec2 b2WorldId Texture2D Rectangle Color Vector2 Application Module ModulePhysics ModuleGame ModuleRender ModuleAudio PhysicEntity Ball Car Checkpoint update_status uint uint16 int16 int32 uintptr_t pugi xml_document xml_node xml_attribute xml_parse_result Scene Render Textures Input Window Audio KeyState".split(" "));
 
   function hlCpp(src) {
     const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])')|(^[ \t]*#\w+[^\n]*)|(\b\d+(?:\.\d+)?f?\b)|([A-Za-z_]\w*)/gm;
@@ -36,7 +40,7 @@
       else {
         const next = src.slice(re.lastIndex).match(/^\s*\(/);
         if (KW.has(t)) out += `<span class="t-kw">${t}</span>`;
-        else if (TY.has(t) || /^SDL_[A-Z]/.test(t) && !next) out += `<span class="t-ty">${t}</span>`;
+        else if (TY.has(t) || /^(SDL_[A-Z]|b2[A-Z])/.test(t) && !next) out += `<span class="t-ty">${t}</span>`;
         else if (next) out += `<span class="t-fn">${t}</span>`;
         else out += t;
       }
@@ -238,8 +242,8 @@
     document.getElementById("side").classList.remove("open");
 
     if (idx < 0) {
-      page.innerHTML = portada();
-      document.title = "Curso SDL + Tiled";
+      page.innerHTML = CFG.portada ? CFG.portada({ lecciones, hechos: hechos(), nota, code }) : portada();
+      document.title = TITULO;
     } else {
       const l = lecciones[idx], prev = lecciones[idx - 1], next = lecciones[idx + 1];
       const hecho = !!hechos()[l.id];
@@ -264,7 +268,7 @@
           <button type="button" class="btn done-toggle ${hecho ? "on" : ""}" id="done-btn">${hecho ? "✓ Lección completada" : "Marcar como completada"}</button>
           ${next ? `<a class="btn primary" href="#${next.id}">${next.num} ${next.corto || next.titulo} →</a>` : ""}
         </div>`;
-      document.title = `${l.num} ${l.corto || l.titulo} · Curso SDL + Tiled`;
+      document.title = `${l.num} ${l.corto || l.titulo} · ${TITULO}`;
       document.getElementById("done-btn").onclick = (e) => { const v = !hechos()[l.id]; marcar(l.id, v); e.currentTarget.classList.toggle("on", v); e.currentTarget.textContent = v ? "✓ Lección completada" : "Marcar como completada"; };
       if (l.init) { try { l.init(page); } catch (err) { console.error("Error iniciando demo de " + l.id, err); } }
       if (prac) { try { window.Curso._prac.init(page, l.id); } catch (err) { console.error("Error iniciando práctica de " + l.id, err); } }

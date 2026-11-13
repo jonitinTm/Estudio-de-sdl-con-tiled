@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Box2D Racing Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Pixelify+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/estilo.css">
+<style>
+/* Este curso usa el acento del asfalto: un ámbar de carreras en vez del azul del curso SDL */
+:root { --accent: #c2410c; --accent-soft: #fde8db; --accent-ink: #ffffff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #fb923c; --accent-soft: #3b2417; --accent-ink: #1a0f08; } }
+:root[data-theme="dark"] { --accent: #fb923c; --accent-soft: #3b2417; --accent-ink: #1a0f08; }
+.brand-mark i:nth-child(1) { background: var(--ink); } .brand-mark i:nth-child(4) { background: var(--ink); }
+.brand-mark i:nth-child(2), .brand-mark i:nth-child(3) { background: var(--surface-2); border: 1px solid var(--line); }
+.page .checklist { list-style: none; padding: 0; display: grid; gap: 6px; }
+.checklist li { max-width: none; } .checklist span { min-width: 0; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 5px; accent-color: var(--accent); }
+.formula { font-family: var(--font-mono); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; margin: 12px 0; overflow-x: auto; white-space: pre; font-size: .9rem; }
+</style>
+<script>
+window.CURSO = {
+  clave: "box2dcurso",
+  titulo: "Box2D Racing Lab",
+  portada({ lecciones, hechos, nota }) {
+    const grupos = [...new Set(lecciones.map((l) => l.grupo))];
+    return `
+      <header class="lesson-head">
+        <div class="eyebrow"><b>Curso personal</b><span>Box2D 2.4 · Raylib · C++</span><span>Physics II · Proyecto 02 Racing</span></div>
+        <h1>De una pelota que cae a un juego de carreras</h1>
+        <p class="lead">Un curso completo de Box2D construido sobre tu propio handout (ModulePhysics, PhysBody, ModuleGame…). Primero entiendes cada pieza del motor de físicas con demos que usan física real; después montas, paso a paso, el juego de carreras top-down del Proyecto 02.</p>
+      </header>
+      <h2>Cómo está pensado</h2>
+      <ol>
+        <li><strong>Concepto</strong>: qué es, por qué existe y qué problema resuelve, explicado desde cero.</li>
+        <li><strong>Demo con Box2D real</strong>: las demos usan planck.js, una traducción exacta de Box2D 2.4 a JavaScript. Lo que ves es lo que hará tu juego. Con el ratón puedes arrastrar cuerpos (es el mouse joint de la F1).</li>
+        <li><strong>Código del handout explicado línea a línea</strong>, con los mismos nombres que tu proyecto.</li>
+        <li><strong>Práctica guiada</strong>: escribes tú el código, paso a paso, con corrección, pistas y solución.</li>
+        <li><strong>Test</strong> final para comprobar que lo has entendido.</li>
+      </ol>
+      ${nota(`<p>Este curso usa <strong>Box2D 2.4</strong> (el de tu handout de Physics II: <code>b2World*</code>, <code>b2Body*</code>, <code>b2FixtureDef</code>…) con <strong>Raylib</strong> para dibujar. Es una API distinta de la del curso de SDL (Box2D 3, con <code>b2BodyId</code>). Las ideas son las mismas; los nombres cambian.</p>`, "warn", "Ojo: Box2D 2.4, no 3.x")}
+      <div class="path">${lecciones.map((l, i) => `<span>${l.num} ${l.corto || l.titulo}</span>${i < lecciones.length - 1 ? "<i>→</i>" : ""}`).join("")}</div>
+      ${grupos.map((g) => `<h2>${g}</h2><div class="cards">${lecciones.filter((l) => l.grupo === g).map((l) => `
+        <a class="card ${hechos[l.id] ? "done" : ""}" href="#${l.id}"><span class="num">${l.num}</span><span class="ttl">${l.titulo}</span><span class="sum">${l.resumen}</span></a>`).join("")}</div>`).join("")}
+      <h2>Lo que viene</h2>
+      <p>Cuando tengas más material (nuevos handouts, correcciones del proyecto, la lección 1 de Box2D si la hay), pásamelo y lo añado con el mismo formato.</p>`;
+  }
+};
+</script>
+</head>
+<body>
+<div class="mobile-bar">
+  <button type="button" class="btn" id="menu-btn" aria-label="Abrir temario">☰ Temario</button>
+  <span class="brand-name">Box2D Racing Lab</span>
+</div>
+<div class="app">
+  <aside class="side" id="side">
+    <a class="brand" href="#inicio">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="brand-name">Box2D Racing Lab<small>CURSO PERSONALIZADO</small></span>
+    </a>
+    <div class="progress-box">
+      <div class="bar"><span id="prog-bar"></span></div>
+      <span id="prog-txt"></span>
+    </div>
+    <nav aria-label="Temario"><ul class="toc" id="toc"></ul></nav>
+    <div class="side-foot">
+      <button type="button" class="btn" id="theme-btn">Cambiar tema</button>
+      <button type="button" class="btn" id="reset-btn">Reiniciar progreso</button>
+    </div>
+  </aside>
+  <main class="main"><div class="page" id="page"></div></main>
+</div>
+
+<script src="vendor/planck.min.js"></script>
+<script src="../js/nucleo.js"></script>
+<script src="../js/practica.js"></script>
+<script src="js/b2demo.js"></script>
+<script src="js/coche.js"></script>
+<!-- Lecciones -->
+<script src="lecciones/B01_mundo.js"></script>
+<script src="lecciones/B02_formas.js"></script>
+<script src="lecciones/B03_colisiones.js"></script>
+<script src="lecciones/B04_joints.js"></script>
+<script src="lecciones/B05_friccion.js"></script>
+<script src="lecciones/B06_filtrado.js"></script>
+<script src="lecciones/B07_entidades.js"></script>
+<script src="lecciones/B08_coche.js"></script>
+<script src="lecciones/B09_circuito.js"></script>
+<script src="lecciones/B10_ia.js"></script>
+<script src="lecciones/B11_proyecto.js"></script>
+<!-- Prácticas guiadas -->
+<script src="practicas/Q01_mundo.js"></script>
+<script src="practicas/Q02_formas.js"></script>
+<script src="practicas/Q03_colisiones.js"></script>
+<script src="practicas/Q04_joints.js"></script>
+<script src="practicas/Q05_friccion.js"></script>
+<script src="practicas/Q06_filtrado.js"></script>
+<script src="practicas/Q07_entidades.js"></script>
+<script src="practicas/Q08_coche.js"></script>
+<script src="practicas/Q09_circuito.js"></script>
+<script src="practicas/Q10_ia.js"></script>
+</body>
+</html>
