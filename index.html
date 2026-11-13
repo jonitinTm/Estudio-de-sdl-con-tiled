@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Curso SDL + Tiled</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Pixelify+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="mobile-bar">
+  <button type="button" class="btn" id="menu-btn" aria-label="Abrir temario">☰ Temario</button>
+  <span class="brand-name">SDL + Tiled</span>
+</div>
+<div class="app">
+  <aside class="side" id="side">
+    <a class="brand" href="#inicio">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="brand-name">SDL + Tiled<small>CURSO PERSONALIZADO</small></span>
+    </a>
+    <div class="progress-box">
+      <div class="bar"><span id="prog-bar"></span></div>
+      <span id="prog-txt"></span>
+    </div>
+    <nav aria-label="Temario"><ul class="toc" id="toc"></ul></nav>
+    <div class="side-foot">
+      <button type="button" class="btn" id="theme-btn">Cambiar tema</button>
+      <button type="button" class="btn" id="reset-btn">Reiniciar progreso</button>
+    </div>
+  </aside>
+  <main class="main"><div class="page" id="page"></div></main>
+</div>
+
+<script src="js/nucleo.js"></script>
+<script src="js/pathfinding_demo.js"></script>
+<!-- Lecciones: añade aquí las nuevas en orden -->
+<script src="lecciones/L01_fundamentos.js"></script>
+<script src="lecciones/L02_framerate.js"></script>
+<script src="lecciones/L03_deltatime.js"></script>
+<script src="lecciones/L04_entidades.js"></script>
+<script src="lecciones/L05_serializacion.js"></script>
+<script src="lecciones/L06_tmx.js"></script>
+<script src="lecciones/L07_dibujar_mapa.js"></script>
+<script src="lecciones/L08_fisicas.js"></script>
+<script src="lecciones/L09_colisiones_mapa.js"></script>
+<script src="lecciones/L10_animaciones_camara.js"></script>
+<script src="lecciones/L11_bfs.js"></script>
+<script src="lecciones/L12_dijkstra.js"></script>
+</body>
+</html>
