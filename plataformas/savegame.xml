@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<game>
+	<player x="2240" y="558" lives="1" />
+	<coins value="1" />
+	<time value="12.6969995" />
+</game>

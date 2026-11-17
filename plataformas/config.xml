@@ -1,0 +1,47 @@
+<!-- Config file for the engine: change values here, no need to recompile -->
+<config>
+  <engine>
+    <title value="Knight Platformer"/>
+    <targetFrameRate value="60"/>
+  </engine>
+
+  <window>
+    <resolution width="1280" height="720" scale="1"/>
+    <fullscreen value="false"/>
+    <borderless value="false"/>
+    <resizable value="false"/>
+  </window>
+
+  <render>
+    <vsync value="false"/>
+  </render>
+
+  <audio>
+    <volume value="0.6"/>
+  </audio>
+
+  <scene>
+    <map path="Assets/Maps/" name="Level1.tmx"/>
+    <fx jump="Assets/Audio/jump.wav" coin="Assets/Audio/coin.wav" hurt="Assets/Audio/hurt.wav"
+        stomp="Assets/Audio/explosion.wav" win="Assets/Audio/power_up.wav" select="Assets/Audio/tap.wav"/>
+    <entities>
+      <player>
+        <texture path="Assets/Textures/knight.png"/>
+        <animations tsx="Assets/Textures/knight.tsx"/>
+        <!-- speed in m/s, jump = upwards speed in m/s. 32 px = 1 m -->
+        <movement speed="6.0" jump="12.5"/>
+        <body width="20" height="36"/>
+        <lives value="3"/>
+      </player>
+      <coin>
+        <texture path="Assets/Textures/coin.png"/>
+        <animations tsx="Assets/Textures/coin.tsx"/>
+      </coin>
+      <enemy>
+        <texture path="Assets/Textures/slime_green.png"/>
+        <animations tsx="Assets/Textures/slime.tsx"/>
+        <movement speed="2.0" chase="3.2" sight="10"/>
+      </enemy>
+    </entities>
+  </scene>
+</config>
