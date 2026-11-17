@@ -264,3 +264,40 @@ input.query { width: 100%; font-family: var(--font-mono); font-size: .82rem; pad
 .prac-fin { padding: 18px 20px; background: var(--ok-soft); border-top: 1px solid var(--ok); }
 /* Sin ligaduras: que "->" y "!=" se vean tal cual se escriben */
 code, pre, kbd, .slot, .prac-ta, textarea.xml, input.query, .log, .readout { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+
+/* ---------- Sección "A fondo" (nivel experto) ---------- */
+.fondo { margin: 48px 0 8px; border-top: 3px double var(--ink-3); padding-top: 6px; }
+.fondo-eyebrow { display: inline-block; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--accent-ink); background: var(--ink); padding: 3px 10px; border-radius: 3px; margin-top: 10px; }
+:root[data-theme="dark"] .fondo-eyebrow { color: var(--bg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .fondo-eyebrow { color: var(--bg); } }
+.fondo h2 { margin-top: 26px; }
+.formula { font-family: var(--font-mono); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; margin: 12px 0; overflow-x: auto; white-space: pre; font-size: .9rem; font-variant-ligatures: none; }
+details.reto { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; margin: 10px 0; }
+details.reto > summary { cursor: pointer; font-weight: 600; }
+details.reto > summary span { color: var(--amber); font-family: var(--font-display); margin-right: 8px; }
+
+/* ---------- Examen ---------- */
+.ex-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: .9rem; margin-bottom: 18px; }
+.ex-bar .bar { flex: 1 1 120px; }
+.ex-time { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; }
+.ex-time.poco { color: var(--bad); }
+.ex-q { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin: 14px 0; }
+.ex-q.ok { border-color: var(--ok); } .ex-q.mal { border-color: var(--bad); }
+.ex-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+.ex-meta b { color: var(--accent); }
+.ex-enun { font-weight: 600; margin: 0 0 10px; max-width: none; }
+.ex-enun code { font-weight: 400; }
+.ex-ops { display: grid; gap: 6px; }
+.ex-ops label { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border: 1px solid var(--line); border-radius: 5px; cursor: pointer; font-size: .93rem; }
+.ex-ops label:hover { border-color: var(--accent); }
+.ex-ops input { margin-top: 5px; accent-color: var(--accent); }
+.ex-ops label.right { background: var(--ok-soft); border-color: var(--ok); }
+.ex-ops label.wrong { background: var(--bad-soft); border-color: var(--bad); }
+.ex-num { font: inherit; font-family: var(--font-mono); padding: 7px 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2); color: var(--ink); width: 150px; }
+.ex-fb { margin-top: 12px; padding: 10px 12px; border-radius: 5px; font-size: .92rem; background: var(--surface-2); }
+.ex-fb.ok { background: var(--ok-soft); } .ex-fb.mal { background: var(--bad-soft); }
+.ex-nota { font-family: var(--font-display); font-size: 3.2rem; line-height: 1; }
+.ex-res { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; align-items: center; }
+.ex-temas { display: grid; gap: 8px; font-size: .88rem; }
+.ex-tema { display: grid; grid-template-columns: minmax(0, 1fr) 90px 44px; gap: 10px; align-items: center; }
+.ex-tema .bar > span { width: 0; }

@@ -12,6 +12,8 @@
   const PREF = (CFG.clave || "sdlcurso") + ".";
   const TITULO = CFG.titulo || "Curso SDL + Tiled";
   const lecciones = [];
+  const fondos = {};      // id de lección -> [html]
+  function fondo(id, html) { (fondos[id] = fondos[id] || []).push(html); }
   const limpiezas = []; // funciones a ejecutar al salir de una lección (parar animaciones, listeners…)
 
   // ---------- Almacenamiento seguro ----------
@@ -250,9 +252,11 @@
       // Práctica guiada (js/practica.js): se inserta antes del test final
       let cuerpo = typeof l.html === "function" ? l.html() : l.html;
       const prac = window.Curso._prac ? window.Curso._prac.html(l.id) : "";
-      if (prac) {
+      // Sección "A fondo" (nivel experto), registrada con Curso.fondo(id, html): va antes de la práctica
+      const hondo = fondos[l.id] ? `<section class="fondo"><div class="fondo-head"><span class="fondo-eyebrow">A fondo · nivel experto</span></div>${fondos[l.id].map((f) => (typeof f === "function" ? f() : f)).join("")}</section>` : "";
+      if (prac || hondo) {
         const marca = "<h2>Comprueba lo que sabes</h2>";
-        cuerpo = cuerpo.includes(marca) ? cuerpo.replace(marca, prac + marca) : cuerpo + prac;
+        cuerpo = cuerpo.includes(marca) ? cuerpo.replace(marca, hondo + prac + marca) : cuerpo + hondo + prac;
       }
       page.innerHTML = `
         <header class="lesson-head">
@@ -328,5 +332,5 @@
     render();
   });
 
-  window.Curso = { leccion, code, nota, todo, quiz, demo, color, canvas, puntero, bucle, on, teclado, alSalir, tilesetDemo, esc, store, hlXml };
+  window.Curso = { leccion, fondo, code, nota, todo, quiz, demo, color, canvas, puntero, bucle, on, teclado, alSalir, tilesetDemo, esc, store, hlXml };
 })();
