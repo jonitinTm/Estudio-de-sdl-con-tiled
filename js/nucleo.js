@@ -216,6 +216,8 @@
         <p class="lead">Clases a tu medida para entender (y sobre todo programar) cada tema del temario: framerate, delta time, entidades, XML, mapas de Tiled, físicas, colisiones, animaciones y pathfinding. Cada lección sigue los TODOs de los handouts, con demos que puedes tocar y la solución escondida para cuando te atasques.</p>
       </header>
 
+      ${nota(`<p><strong>¿Quieres construir el juego de plataformas?</strong> El <a href="#l13">Bloque 7 · Construye el plataformas paso a paso</a> te lleva desde una carpeta vacía hasta un plataformas completo (tu caballero, monedas, slimes con pathfinding, vidas, checkpoints, meta, guardar/cargar), con todo el código explicado y probado. Y al final, el <a href="#examen">examen</a>.</p>`, "game", "Empieza por aquí")}
+
       <h2>Cómo usar este curso</h2>
       <ol>
         <li><strong>Lee el concepto</strong> y juega con la demo. Las demos están hechas en el navegador, pero imitan lo que hará tu motor en C++.</li>

@@ -301,3 +301,7 @@ details.reto > summary span { color: var(--amber); font-family: var(--font-displ
 .ex-temas { display: grid; gap: 8px; font-size: .88rem; }
 .ex-tema { display: grid; grid-template-columns: minmax(0, 1fr) 90px 44px; gap: 10px; align-items: center; }
 .ex-tema .bar > span { width: 0; }
+/* Textos largos sin espacios (código) dentro de preguntas: que partan línea en móvil */
+.q-text, .q-opts button, .q-exp, .ex-enun, .ex-ops label, .ex-fb { overflow-wrap: anywhere; }
+/* Pixelify Sans dibuja "fi" como una ligadura que parece una A: desactivarlas en la fuente de títulos */
+h1, h2, .brand-name, .demo-title, .todo-tag, .paso-num, .toc .num, .card .num, .ex-nota, .num { font-variant-ligatures: none; font-feature-settings: "liga" 0, "dlig" 0, "calt" 0; }

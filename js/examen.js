@@ -60,7 +60,7 @@
             cuerpo = html;
           }
           const tipo = { test: "Teoría", num: "Cálculo", codigo: "Código" }[q.tipo];
-          return `<div class="ex-q" data-i="${i}"><div class="ex-meta"><b>Pregunta ${i + 1}</b><span>${tipo}</span><span>${q.tema}</span></div><div class="ex-enun">${q.p}</div>${cuerpo}<div class="ex-fb" hidden></div></div>`;
+          return `<div class="ex-q" data-i="${i}" data-b="${def.banco.indexOf(q)}"><div class="ex-meta"><b>Pregunta ${i + 1}</b><span>${tipo}</span><span>${q.tema}</span></div><div class="ex-enun">${q.p}</div>${cuerpo}<div class="ex-fb" hidden></div></div>`;
         }
 
         function empezar(modo) {
