@@ -1,0 +1,1410 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Box2D Duo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una columna de móvil, como Duolingo. Ruta de unidades -> lección a pantalla completa con
+   barra de progreso arriba y hoja de respuesta abajo. Verde "correcto", rojo "error", ámbar "XP". */
+:root {
+  --bg: #ffffff;
+  --bg-2: #f4f6f2;
+  --card: #ffffff;
+  --ink: #2b2f36;
+  --ink-2: #5b6270;
+  --ink-3: #9aa1ad;
+  --line: #e3e6ea;
+  --green: #58a700;
+  --green-bright: #6bc400;
+  --green-soft: #e8f6d6;
+  --green-shadow: #4a8f00;
+  --red: #e03b3b;
+  --red-soft: #fde7e7;
+  --amber: #e89a00;
+  --blue: #1a8fd6;
+  --blue-soft: #e1f2fc;
+  --code-bg: #1f2430;
+  --code-ink: #e6e8ef;
+  --code-com: #7f88a6;
+  --code-kw: #8fb3ff;
+  --code-ty: #7fd6c2;
+  --code-str: #f2c27b;
+  --code-num: #f59e8b;
+  --code-fn: #d5b8ff;
+  --font: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141820; --bg-2: #1b212b; --card: #1d232e; --ink: #eceff4; --ink-2: #b7bdc8; --ink-3: #7c8492; --line: #2e3644;
+    --green: #7ad11a; --green-bright: #8fe02a; --green-soft: #1f3312; --green-shadow: #5a9c12;
+    --red: #ff6b6b; --red-soft: #3a1c1f; --amber: #ffb627; --blue: #4fb6f5; --blue-soft: #16303f; --code-bg: #0e1118;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141820; --bg-2: #1b212b; --card: #1d232e; --ink: #eceff4; --ink-2: #b7bdc8; --ink-3: #7c8492; --line: #2e3644;
+  --green: #7ad11a; --green-bright: #8fe02a; --green-soft: #1f3312; --green-shadow: #5a9c12;
+  --red: #ff6b6b; --red-soft: #3a1c1f; --amber: #ffb627; --blue: #4fb6f5; --blue-soft: #16303f; --code-bg: #0e1118;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 17px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 50; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.wrap { max-width: 640px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+[hidden] { display: none !important; }
+
+/* ---------- Cabecera ---------- */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 2px solid var(--line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; }
+.brand { font-weight: 900; font-size: 1.15rem; letter-spacing: -.01em; }
+.brand b { color: var(--green); }
+.stats { display: flex; gap: 14px; font-weight: 800; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.stat { display: inline-flex; align-items: center; gap: 5px; }
+.stat i { font-style: normal; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; font-size: .72rem; color: #fff; }
+.stat.racha i { background: var(--amber); }
+.stat.xp i { background: var(--blue); }
+.icon-btn { background: none; border: 2px solid var(--line); border-radius: 12px; padding: 4px 10px; font-weight: 800; cursor: pointer; }
+
+/* ---------- Ruta ---------- */
+.intro { padding-block: 20px 4px; }
+.intro h1 { font-size: 1.6rem; line-height: 1.15; margin: 0 0 6px; font-weight: 900; text-wrap: balance; }
+.intro p { margin: 0; color: var(--ink-2); }
+.repaso { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+.unit { margin: 22px 0; border-radius: 18px; overflow: hidden; border: 2px solid var(--line); background: var(--card); }
+.unit-head { display: flex; gap: 12px; align-items: center; padding: 14px 16px; color: #fff; }
+.unit-badge { flex: none; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: .9rem; background: rgba(255,255,255,.22); }
+.unit-head h2 { margin: 0; font-size: 1.08rem; line-height: 1.2; font-weight: 900; }
+.unit-head p { margin: 2px 0 0; font-size: .85rem; opacity: .92; line-height: 1.3; }
+.unit-body { padding: 14px 16px 16px; display: grid; gap: 12px; }
+.unit-prog { display: flex; align-items: center; gap: 10px; font-size: .82rem; color: var(--ink-2); font-weight: 700; }
+.bar { flex: 1; height: 12px; border-radius: 99px; background: var(--bg-2); overflow: hidden; }
+.bar > span { display: block; height: 100%; width: 0; background: var(--green-bright); border-radius: 99px; transition: width .3s; }
+.nodes { display: flex; flex-wrap: wrap; gap: 10px; }
+.node { width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer; font-weight: 900; font-size: 1.05rem; color: #fff; background: var(--ink-3); box-shadow: 0 5px 0 rgba(0,0,0,.18); }
+.node.done { background: var(--amber); }
+.node.next { background: var(--green-bright); box-shadow: 0 5px 0 var(--green-shadow); }
+.node:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+.unit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Botones ---------- */
+.btn { border: 2px solid var(--line); background: var(--card); border-radius: 14px; padding: 11px 18px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 0 var(--line); text-transform: uppercase; letter-spacing: .03em; font-size: .9rem; }
+.btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--line); }
+.btn.go { background: var(--green-bright); border-color: var(--green-bright); color: #fff; box-shadow: 0 4px 0 var(--green-shadow); }
+.btn.go:disabled { background: var(--line); border-color: var(--line); color: var(--ink-3); box-shadow: 0 4px 0 var(--line); cursor: default; }
+.btn.bad { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 4px 0 #a52626; }
+.btn.small { padding: 7px 12px; font-size: .78rem; }
+.btn.wide { width: 100%; }
+
+/* ---------- Lección ---------- */
+.lesson { position: fixed; inset: 0; background: var(--bg); z-index: 40; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); }
+.lesson-top { display: flex; align-items: center; gap: 12px; padding-block: 12px; }
+.close { background: none; border: none; font-size: 1.6rem; color: var(--ink-3); cursor: pointer; line-height: 1; padding: 4px; }
+.hearts { font-weight: 900; color: var(--red); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lesson-scroll { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+.qtype { font-size: .78rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin: 6px 0 4px; }
+.qtype.nuevo { color: var(--amber); }
+.qtext { font-size: 1.15rem; font-weight: 800; margin: 0 0 14px; line-height: 1.35; overflow-wrap: anywhere; }
+.qtext code, .exp code, .chuleta code { font-family: var(--mono); font-size: .86em; background: var(--bg-2); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; overflow-wrap: anywhere; font-weight: 600; }
+.qtext pre code, .exp pre code, .chuleta pre code, .opt pre code { background: none; border: 0; padding: 0; font-size: inherit; font-weight: 400; overflow-wrap: normal; border-radius: 0; }
+.lesson-top .bar { background: var(--line); }
+pre.code { margin: 0 0 14px; background: var(--code-bg); color: var(--code-ink); border-radius: 12px; padding: 12px 14px; overflow-x: auto; font-family: var(--mono); font-size: .8rem; line-height: 1.55; font-variant-ligatures: none; }
+.t-com { color: var(--code-com); font-style: italic; } .t-kw { color: var(--code-kw); } .t-ty { color: var(--code-ty); }
+.t-str { color: var(--code-str); } .t-num { color: var(--code-num); } .t-fn { color: var(--code-fn); } .t-pp { color: #f08bb4; }
+.blank { display: inline-block; min-width: 3.2em; border-bottom: 2px solid var(--code-com); padding: 0 4px; margin: 0 1px; color: var(--code-str); cursor: pointer; text-align: center; border-radius: 3px; }
+.blank.empty { color: transparent; }
+.blank.current { border-bottom-color: var(--green-bright); background: rgba(107,196,0,.12); }
+.blank.ok { border-bottom-color: var(--green-bright); color: #b6f07a; }
+.blank.ko { border-bottom-color: var(--red); color: #ffb3b3; }
+
+.opts { display: grid; gap: 10px; }
+.opt { text-align: left; border: 2px solid var(--line); background: var(--card); border-radius: 14px; padding: 12px 14px; cursor: pointer; box-shadow: 0 3px 0 var(--line); font-weight: 700; font-size: .98rem; overflow-wrap: anywhere; }
+.opt code { font-family: var(--mono); font-size: .85em; }
+.opt.sel { border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 3px 0 var(--blue); }
+.opt.right { border-color: var(--green); background: var(--green-soft); box-shadow: 0 3px 0 var(--green); }
+.opt.wrong { border-color: var(--red); background: var(--red-soft); box-shadow: 0 3px 0 var(--red); }
+.opt.mono { font-family: var(--mono); font-size: .84rem; font-weight: 600; white-space: pre-wrap; }
+
+.bank { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.chip { border: 2px solid var(--line); background: var(--card); border-radius: 12px; padding: 8px 11px; font-family: var(--mono); font-size: .82rem; font-weight: 600; cursor: pointer; box-shadow: 0 3px 0 var(--line); }
+.chip.used { visibility: hidden; }
+
+.build { min-height: 60px; border: 2px dashed var(--line); border-radius: 14px; padding: 8px; display: grid; gap: 6px; margin-bottom: 12px; }
+.build:empty::before { content: "Toca las líneas en orden para construir el código"; color: var(--ink-3); font-size: .9rem; padding: 8px; }
+.line { text-align: left; border: 2px solid var(--line); background: var(--card); border-radius: 10px; padding: 7px 10px; font-family: var(--mono); font-size: .78rem; font-weight: 600; cursor: pointer; white-space: pre; overflow-x: auto; box-shadow: 0 3px 0 var(--line); }
+.build .line { background: var(--code-bg); color: var(--code-ink); border-color: var(--code-bg); box-shadow: none; }
+.build .line.ok { border-color: var(--green); }
+.build .line.ko { border-color: var(--red); }
+.pool { display: grid; gap: 6px; }
+
+.bugcode { display: grid; gap: 4px; margin-bottom: 14px; background: var(--code-bg); border-radius: 12px; padding: 8px; }
+.bugline { text-align: left; border: 2px solid transparent; background: none; color: var(--code-ink); border-radius: 8px; padding: 4px 8px; font-family: var(--mono); font-size: .78rem; white-space: pre; overflow-x: auto; cursor: pointer; }
+.bugline:hover { background: rgba(255,255,255,.05); }
+.bugline.sel { border-color: var(--blue); background: rgba(79,182,245,.12); }
+.bugline.right { border-color: var(--green-bright); background: rgba(107,196,0,.15); }
+.bugline.wrong { border-color: var(--red); background: rgba(255,107,107,.15); }
+
+.write { width: 100%; font-family: var(--mono); font-size: .9rem; padding: 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg-2); color: var(--ink); resize: vertical; min-height: 70px; }
+.write:focus { outline: none; border-color: var(--blue); }
+.write.right { border-color: var(--green); } .write.wrong { border-color: var(--red); }
+.hint { font-size: .85rem; color: var(--ink-3); margin-top: 6px; }
+
+/* ---------- Hoja de respuesta ---------- */
+.sheet { border-top: 2px solid var(--line); padding-block: 14px calc(14px + env(safe-area-inset-bottom, 0px)); background: var(--bg); }
+.sheet.ok { background: var(--green-soft); border-top-color: transparent; }
+.sheet.ko { background: var(--red-soft); border-top-color: transparent; }
+.verdict { font-weight: 900; font-size: 1.2rem; margin: 0 0 4px; }
+.sheet.ok .verdict { color: var(--green); } .sheet.ko .verdict { color: var(--red); }
+.exp { font-size: .93rem; margin: 0 0 12px; max-height: 34vh; overflow-y: auto; overflow-wrap: anywhere; }
+.exp pre.code { margin: 8px 0 0; }
+
+/* ---------- Fin y chuleta ---------- */
+.done { text-align: center; padding-top: 30px; }
+.done h2 { font-size: 1.8rem; margin: 10px 0; font-weight: 900; }
+.done .big { display: flex; justify-content: center; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
+.done .box { border: 2px solid var(--line); border-radius: 14px; padding: 10px 16px; min-width: 110px; }
+.done .box b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.done .box span { font-size: .75rem; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+.chuleta { padding-block: 10px 30px; }
+.chuleta h3 { margin: 18px 0 6px; font-size: 1.05rem; }
+.chuleta p, .chuleta li { color: var(--ink-2); font-size: .95rem; }
+footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="brand">Box2D<b>Duo</b></span>
+    <div class="stats">
+      <span class="stat racha" title="Racha de días"><i>🔥</i><span id="st-racha">0</span></span>
+      <span class="stat xp" title="Experiencia"><i>XP</i><span id="st-xp">0</span></span>
+      <button type="button" class="icon-btn" id="tema" aria-label="Cambiar tema">◐</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="ruta"></main>
+
+<section class="lesson" id="leccion" hidden></section>
+
+<footer class="wrap">C++ · Box2D 2.4 · Raylib — Physics II, Proyecto 02. El progreso se guarda en este navegador.</footer>
+
+<script>
+/* =====================================================================
+   Motor de la app. Las unidades se registran con DUO.unidad({...}) desde unidades/*.js
+   Tipos de pregunta:
+     test   { p, code?, o:[...], c }                 elegir una
+     huecos { p, code con ▢, bank:[...], a:[...] }    completar con fichas (en orden)
+     orden  { p, lines:[en orden], extra?:[...] }     construir el código tocando líneas
+     escribe{ p, code?, a:[str|RegExp], ph? }         escribir una línea corta
+     bug    { p, lines:[...], c }                     tocar la línea con el error
+   Todas llevan e (explicación). Opcional: nuevo (concepto nuevo, se marca en ámbar)
+   ===================================================================== */
+(function () {
+  "use strict";
+  const unidades = [];
+  const DUO = window.DUO = {
+    unidad(u) { unidades.push(u); },
+    test: (p, o, c, e, x = {}) => Object.assign({ t: "test", p, o, c, e }, x),
+    huecos: (p, code, bank, a, e, x = {}) => Object.assign({ t: "huecos", p, code, bank, a, e }, x),
+    orden: (p, lines, e, x = {}) => Object.assign({ t: "orden", p, lines, e }, x),
+    escribe: (p, a, e, x = {}) => Object.assign({ t: "escribe", p, a, e }, x),
+    bug: (p, lines, c, e, x = {}) => Object.assign({ t: "bug", p, lines, c, e }, x)
+  };
+
+  // ---------- almacenamiento ----------
+  const KEY = "box2dduo.v1";
+  let S = { xp: 0, racha: 0, ultimoDia: "", hechas: {}, falladas: {}, vistas: {} };
+  try { const v = JSON.parse(localStorage.getItem(KEY)); if (v) S = Object.assign(S, v); } catch (e) {}
+  const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  try { const t = localStorage.getItem(KEY + ".tema"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+
+  // ---------- utilidades ----------
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const baraja = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const norm = (s) => String(s).replace(/\/\/[^\n]*/g, "").replace(/\s+/g, "").replace(/;+$/, "");
+  const KW = new Set("if else for while do switch case default break continue return class struct enum public private protected virtual override const static new delete this nullptr NULL true false using namespace template typename auto inline friend operator constexpr sizeof".split(" "));
+  const TY = new Set("int float double bool void char unsigned uint uint16 int16 uint32 int32 uintptr_t size_t std vector list string pair b2World b2Body b2BodyDef b2Fixture b2FixtureDef b2Shape b2CircleShape b2PolygonShape b2ChainShape b2EdgeShape b2Vec2 b2Contact b2ContactListener b2Joint b2MouseJoint b2MouseJointDef b2RevoluteJointDef b2RevoluteJoint b2PrismaticJointDef b2DistanceJointDef b2WeldJointDef b2FrictionJointDef b2RayCastInput b2RayCastOutput b2Filter b2Transform b2Manifold b2ContactImpulse PhysBody PhysicEntity Module ModulePhysics ModuleGame Application update_status Car PlayerCar AICar Checkpoint Timer Texture2D Rectangle Vector2 Color Sound".split(" "));
+  function hl(src) {
+    const re = /(\/\/[^\n]*)|("(?:\\.|[^"\\])*")|(^[ \t]*#\w+[^\n]*)|(\b\d+(?:\.\d+)?f?\b)|([A-Za-z_]\w*)|(▢)/gm;
+    let out = "", last = 0, m;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      const t = m[0];
+      if (m[1]) out += `<span class="t-com">${esc(t)}</span>`;
+      else if (m[2]) out += `<span class="t-str">${esc(t)}</span>`;
+      else if (m[3]) out += `<span class="t-pp">${esc(t)}</span>`;
+      else if (m[4]) out += `<span class="t-num">${t}</span>`;
+      else if (m[6]) out += "▢";
+      else {
+        const next = /^\s*\(/.test(src.slice(re.lastIndex));
+        if (KW.has(t)) out += `<span class="t-kw">${t}</span>`;
+        else if (TY.has(t) || (/^b2[A-Z_]/.test(t) && !next)) out += `<span class="t-ty">${t}</span>`;
+        else if (next) out += `<span class="t-fn">${t}</span>`;
+        else out += t;
+      }
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last));
+  }
+  const codeHTML = (src) => `<pre class="code"><code>${hl(String(src).replace(/^\n/, "").replace(/\s+$/, ""))}</code></pre>`;
+  // texto de pregunta/explicación: `código` -> <code>, bloques ```…``` -> pre
+  function rich(s) {
+    return String(s).split(/```/).map((part, i) => i % 2 ? codeHTML(part) : esc(part).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>")).join("");
+  }
+  const hoy = () => new Date().toISOString().slice(0, 10);
+  const colores = ["#58a700", "#1a8fd6", "#ce6a00", "#8a4fd8", "#d8326e", "#0f9c8c", "#c0392b", "#2f6fd1", "#7a8f00", "#a3489c", "#0b8fb0", "#b35c00", "#4d7c0f", "#5b5bd6", "#b0306a", "#127a6a"];
+  const LPL = 8; // preguntas nuevas por lección
+
+  // ---------- ruta ----------
+  function ruta() {
+    document.getElementById("st-xp").textContent = S.xp;
+    document.getElementById("st-racha").textContent = S.racha;
+    const nFall = Object.keys(S.falladas).length;
+    const total = unidades.reduce((n, u) => n + u.preguntas.length, 0);
+    let html = `<section class="intro"><h1>Programa física de juegos, ejercicio a ejercicio</h1>
+      <p>${total} ejercicios de C++ y Box2D para acabar programando tú solo el juego de carreras. Lecciones de 5 minutos: lee el código, complétalo, ordénalo, encuentra el bug.</p>
+      <div class="repaso">${nFall ? `<button type="button" class="btn go" data-repaso>Repasar mis ${nFall} fallos</button>` : ""}<button type="button" class="btn" data-mezcla>Lección aleatoria</button></div></section>`;
+    unidades.forEach((u, ui) => {
+      const n = Math.ceil(u.preguntas.length / LPL), hechas = S.hechas[u.id] || 0;
+      const col = colores[ui % colores.length];
+      html += `<section class="unit"><div class="unit-head" style="background:${col}"><span class="unit-badge">${esc(u.icono || ui + 1)}</span><div><h2>Unidad ${ui + 1} · ${esc(u.titulo)}</h2><p>${esc(u.desc)}</p></div></div>
+        <div class="unit-body"><div class="unit-prog"><div class="bar"><span style="width:${Math.min(100, 100 * hechas / n)}%"></span></div>${Math.min(hechas, n)}/${n}</div>
+        <div class="nodes">${Array.from({ length: n }, (_, k) => `<button type="button" class="node ${k < hechas ? "done" : k === hechas ? "next" : ""}" data-u="${ui}" data-l="${k}" aria-label="Lección ${k + 1}">${k < hechas ? "✓" : k + 1}</button>`).join("")}</div>
+        <div class="unit-actions">${u.chuleta ? `<button type="button" class="btn small" data-chuleta="${ui}">Chuleta</button>` : ""}<button type="button" class="btn small" data-practica="${ui}">Practicar unidad</button></div></div></section>`;
+    });
+    const r = document.getElementById("ruta");
+    r.innerHTML = html;
+  }
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("button"); if (!t) return;
+    if (t.id === "tema") {
+      const osc = document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = osc ? "light" : "dark";
+      try { localStorage.setItem(KEY + ".tema", document.documentElement.dataset.theme); } catch (er) {}
+      return;
+    }
+    if (t.dataset.u != null && t.classList.contains("node")) {
+      const u = unidades[+t.dataset.u], k = +t.dataset.l;
+      const qs = u.preguntas.slice(k * LPL, k * LPL + LPL).map((q, i) => Object.assign({ _id: u.id + ":" + (k * LPL + i) }, q));
+      // dos de repaso de lecciones anteriores
+      const prev = u.preguntas.slice(0, k * LPL).map((q, i) => Object.assign({ _id: u.id + ":" + i }, q));
+      leccion(qs.concat(baraja(prev).slice(0, 2)), { unidad: u, num: k });
+    }
+    if (t.dataset.practica != null) {
+      const u = unidades[+t.dataset.practica];
+      leccion(baraja(u.preguntas.map((q, i) => Object.assign({ _id: u.id + ":" + i }, q))).slice(0, 10), { unidad: u });
+    }
+    if (t.dataset.repaso != null) {
+      const ids = Object.keys(S.falladas);
+      const qs = baraja(ids).slice(0, 10).map(buscar).filter(Boolean);
+      leccion(qs, { repaso: true });
+    }
+    if (t.dataset.mezcla != null) {
+      const todas = []; unidades.forEach((u) => u.preguntas.forEach((q, i) => todas.push(Object.assign({ _id: u.id + ":" + i }, q))));
+      leccion(baraja(todas).slice(0, 10), {});
+    }
+    if (t.dataset.chuleta != null) chuleta(unidades[+t.dataset.chuleta]);
+  });
+  function buscar(id) {
+    const [uid, i] = id.split(":"); const u = unidades.find((x) => x.id === uid);
+    return u && u.preguntas[+i] ? Object.assign({ _id: id }, u.preguntas[+i]) : null;
+  }
+
+  // ---------- chuleta ----------
+  function chuleta(u) {
+    const L = document.getElementById("leccion"); L.hidden = false;
+    L.innerHTML = `<div class="wrap lesson-top"><button type="button" class="close" id="cerrar" aria-label="Cerrar">✕</button><b>Chuleta · ${esc(u.titulo)}</b></div>
+      <div class="lesson-scroll"><div class="wrap chuleta">${u.chuleta.map((b) => `<h3>${esc(b[0])}</h3>${rich(b[1])}`).join("")}</div></div>`;
+    L.querySelector("#cerrar").onclick = cerrar;
+  }
+  function cerrar() { const L = document.getElementById("leccion"); L.hidden = true; L.innerHTML = ""; document.body.style.overflow = ""; ruta(); }
+
+  // ---------- lección ----------
+  function leccion(cola, ctx) {
+    if (!cola.length) return;
+    const L = document.getElementById("leccion"); L.hidden = false; document.body.style.overflow = "hidden";
+    const total = cola.length;
+    let vidas = 5, aciertos = 0, intentos = 0, hechasOk = 0, xp = 0, actual = null, estado = null;
+    const corregidas = new Set();
+
+    L.innerHTML = `<div class="wrap lesson-top"><button type="button" class="close" id="cerrar" aria-label="Salir">✕</button><div class="bar"><span id="lbar"></span></div><span class="hearts" id="vidas"></span></div>
+      <div class="lesson-scroll"><div class="wrap" id="q"></div></div>
+      <div class="sheet" id="sheet"><div class="wrap"><div id="fb"></div><button type="button" class="btn go wide" id="comprobar" disabled>Comprobar</button></div></div>`;
+    L.querySelector("#cerrar").onclick = cerrar;
+    const Q = L.querySelector("#q"), sheet = L.querySelector("#sheet"), fb = L.querySelector("#fb"), btn = L.querySelector("#comprobar");
+
+    function pinta() {
+      L.querySelector("#lbar").style.width = (100 * corregidas.size / total) + "%";
+      L.querySelector("#vidas").textContent = "♥ " + vidas;
+    }
+    function siguiente() {
+      sheet.className = "sheet"; fb.innerHTML = ""; btn.className = "btn go wide"; btn.textContent = "Comprobar"; btn.disabled = true;
+      if (!cola.length || vidas <= 0) return fin();
+      actual = cola.shift(); estado = render(actual); pinta();
+      L.querySelector(".lesson-scroll").scrollTop = 0;
+    }
+    btn.onclick = () => {
+      if (btn.dataset.fase === "seguir") { btn.dataset.fase = ""; return siguiente(); }
+      const ok = estado.check();
+      intentos++;
+      if (ok) {
+        aciertos++; corregidas.add(actual._id); xp += 10; delete S.falladas[actual._id];
+      } else {
+        vidas--; S.falladas[actual._id] = 1; cola.push(actual);   // vuelve al final, como en Duolingo
+      }
+      S.vistas[actual._id] = 1;
+      sheet.className = "sheet " + (ok ? "ok" : "ko");
+      fb.innerHTML = `<p class="verdict">${ok ? pick(["¡Correcto!", "¡Muy bien!", "¡Exacto!", "¡Eso es!"]) : "No es correcto"}</p>${estado.solucion && !ok ? `<div class="exp"><b>Solución:</b> ${estado.solucion()}</div>` : ""}<div class="exp">${rich(actual.e || "")}</div>`;
+      btn.textContent = "Continuar"; btn.className = "btn wide " + (ok ? "go" : "bad"); btn.disabled = false; btn.dataset.fase = "seguir";
+      pinta(); guardar();
+    };
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+    const listo = (v) => { btn.disabled = !v; };
+
+    function fin() {
+      const aprobado = vidas > 0;
+      if (aprobado && ctx.unidad && ctx.num != null) S.hechas[ctx.unidad.id] = Math.max(S.hechas[ctx.unidad.id] || 0, ctx.num + 1);
+      if (aprobado) {
+        S.xp += xp + 5;
+        const d = hoy();
+        if (S.ultimoDia !== d) {
+          const ayer = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+          S.racha = (S.ultimoDia === ayer) ? S.racha + 1 : 1; S.ultimoDia = d;
+        }
+      }
+      guardar();
+      sheet.hidden = true;
+      const pct = intentos ? Math.round(100 * aciertos / intentos) : 0;
+      Q.innerHTML = `<div class="done"><h2>${aprobado ? "¡Lección completada!" : "Te has quedado sin vidas"}</h2>
+        <p>${aprobado ? "Los ejercicios que fallaste se guardan para el repaso." : "No pasa nada: repite la lección, las preguntas falladas vuelven."}</p>
+        <div class="big"><div class="box"><span>XP</span><b>+${aprobado ? xp + 5 : 0}</b></div><div class="box"><span>Precisión</span><b>${pct}%</b></div><div class="box"><span>Racha</span><b>${S.racha}</b></div></div>
+        <button type="button" class="btn go wide" id="volver">Continuar</button></div>`;
+      Q.querySelector("#volver").onclick = cerrar;
+    }
+
+    // ---------- tipos ----------
+    function render(q) {
+      const etiqueta = { test: "Elige la respuesta", huecos: "Completa el código", orden: "Ordena el código", escribe: "Escríbelo tú", bug: "Encuentra el bug" }[q.t];
+      let h = `<p class="qtype ${q.nuevo ? "nuevo" : ""}">${q.nuevo ? "Concepto nuevo · " : ""}${etiqueta}</p><div class="qtext">${rich(q.p)}</div>`;
+
+      if (q.t === "test") {
+        const orden = baraja(q.o.map((_, i) => i));
+        h += (q.code ? codeHTML(q.code) : "") + `<div class="opts">${orden.map((i) => `<button type="button" class="opt ${/[;(){}=]/.test(q.o[i]) && q.o[i].length < 90 && !/ [a-záéíóúñ]{4,} /.test(q.o[i]) ? "mono" : ""}" data-i="${i}">${rich(q.o[i])}</button>`).join("")}</div>`;
+        Q.innerHTML = h; let sel = -1;
+        Q.querySelectorAll(".opt").forEach((b) => b.onclick = () => { if (btn.dataset.fase) return; sel = +b.dataset.i; Q.querySelectorAll(".opt").forEach((x) => x.classList.toggle("sel", x === b)); listo(true); });
+        return { check() { Q.querySelectorAll(".opt").forEach((x) => { x.classList.remove("sel"); if (+x.dataset.i === q.c) x.classList.add("right"); else if (+x.dataset.i === sel) x.classList.add("wrong"); }); return sel === q.c; } };
+      }
+
+      if (q.t === "huecos") {
+        const partes = String(q.code).replace(/^\n/, "").replace(/\s+$/, "").split("▢");
+        let code = "";
+        partes.forEach((p, i) => { code += hl(p); if (i < partes.length - 1) code += `<span class="blank empty" data-b="${i}">____</span>`; });
+        const fichas = baraja(q.bank.map((t, i) => ({ t, i })));
+        h += `<pre class="code"><code>${code}</code></pre><div class="bank">${fichas.map((f) => `<button type="button" class="chip" data-k="${f.i}">${esc(f.t)}</button>`).join("")}</div>`;
+        Q.innerHTML = h;
+        const huecos = [...Q.querySelectorAll(".blank")], val = huecos.map(() => null);
+        const marca = () => { const k = val.indexOf(null); huecos.forEach((b, i) => b.classList.toggle("current", i === k)); listo(!val.includes(null)); };
+        Q.querySelectorAll(".chip").forEach((c) => c.onclick = () => {
+          if (btn.dataset.fase) return; const k = val.indexOf(null); if (k < 0) return;
+          val[k] = +c.dataset.k; huecos[k].textContent = q.bank[val[k]]; huecos[k].classList.remove("empty"); c.classList.add("used"); marca();
+        });
+        huecos.forEach((b, i) => b.onclick = () => {
+          if (btn.dataset.fase || val[i] == null) return;
+          Q.querySelector(`.chip[data-k="${val[i]}"]`).classList.remove("used"); val[i] = null; b.textContent = "____"; b.classList.add("empty"); marca();
+        });
+        marca();
+        return {
+          check() { let ok = true; huecos.forEach((b, i) => { const bien = q.bank[val[i]] === q.a[i]; b.classList.add(bien ? "ok" : "ko"); b.classList.remove("current"); if (!bien) ok = false; }); return ok; },
+          solucion: () => q.a.map((x) => `<code>${esc(x)}</code>`).join(" · ")
+        };
+      }
+
+      if (q.t === "orden") {
+        const items = baraja(q.lines.map((t, i) => ({ t, i })).concat((q.extra || []).map((t) => ({ t, i: -1 }))));
+        h += (q.extra && q.extra.length ? `<p class="hint">Ojo: sobra${q.extra.length > 1 ? "n " + q.extra.length + " líneas" : " una línea"}.</p>` : "") + `<div class="build" id="build"></div><div class="pool" id="pool">${items.map((it, k) => `<button type="button" class="line" data-k="${k}">${esc(it.t)}</button>`).join("")}</div>`;
+        Q.innerHTML = h;
+        const build = Q.querySelector("#build"), pool = Q.querySelector("#pool"), elegidas = [];
+        const upd = () => listo(elegidas.length >= q.lines.length);
+        pool.querySelectorAll(".line").forEach((b) => b.onclick = () => {
+          if (btn.dataset.fase) return;
+          if (b.parentNode === pool) { build.appendChild(b); elegidas.push(+b.dataset.k); }
+          else { pool.appendChild(b); elegidas.splice(elegidas.indexOf(+b.dataset.k), 1); }
+          upd();
+        });
+        return {
+          check() {
+            let ok = elegidas.length === q.lines.length;
+            [...build.children].forEach((b, pos) => { const it = items[+b.dataset.k]; const bien = it.i === pos || (it.i >= 0 && q.lines[it.i] === q.lines[pos]); b.classList.add(bien ? "ok" : "ko"); if (!bien) ok = false; });
+            return ok;
+          },
+          solucion: () => codeHTML(q.lines.join("\n"))
+        };
+      }
+
+      if (q.t === "escribe") {
+        h += (q.code ? codeHTML(q.code) : "") + `<textarea class="write" id="w" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="${esc(q.ph || "Escribe el código…")}"></textarea><p class="hint">Los espacios dan igual. El punto y coma final es opcional.</p>`;
+        Q.innerHTML = h; const w = Q.querySelector("#w");
+        w.oninput = () => listo(w.value.trim().length > 0);
+        return {
+          check() { const v = norm(w.value); const ok = q.a.some((a) => (a instanceof RegExp ? a.test(v) : v === norm(a))); w.classList.add(ok ? "right" : "wrong"); w.readOnly = true; return ok; },
+          solucion: q.a.some((a) => typeof a === "string") ? () => `<code>${esc(q.a.find((a) => typeof a === "string"))}</code>` : null
+        };
+      }
+
+      if (q.t === "bug") {
+        h += `<div class="bugcode">${q.lines.map((l, i) => `<button type="button" class="bugline" data-i="${i}">${hl(l) || " "}</button>`).join("")}</div>`;
+        Q.innerHTML = h; let sel = -1;
+        Q.querySelectorAll(".bugline").forEach((b) => b.onclick = () => { if (btn.dataset.fase) return; sel = +b.dataset.i; Q.querySelectorAll(".bugline").forEach((x) => x.classList.toggle("sel", x === b)); listo(true); });
+        return { check() { Q.querySelectorAll(".bugline").forEach((x) => { x.classList.remove("sel"); if (+x.dataset.i === q.c) x.classList.add("right"); else if (+x.dataset.i === sel) x.classList.add("wrong"); }); return sel === q.c; } };
+      }
+    }
+    siguiente();
+  }
+
+  window.addEventListener("DOMContentLoaded", ruta);
+})();
+</script>
+<!-- Unidades (en orden) -->
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "cpp", titulo: "C++ que vas a usar", icono: "C++",
+    desc: "Punteros, referencias, new/delete, const y std::vector: lo que aparece en cada línea del motor.",
+    chuleta: [
+      ["Punteros y referencias", "Un puntero guarda una dirección: `PhysBody* p`. Se usa con `->`: `p->body`. Puede ser `nullptr`.\nUna referencia es otro nombre para una variable ya existente: `int& x`. Se usa con `.` y nunca es nula.\n```int vida = 3;\nint* p = &vida;   // & delante de una variable: su dirección\n*p = 2;           // * delante de un puntero: lo apuntado\nint& r = vida;    // referencia\nr = 1;            // vida vale 1```"],
+      ["new / delete", "Lo que creas con `new` lo borras con `delete`. Un array creado con `new T[n]` se borra con `delete[]`.\n```Car* car = new Car();\n...\ndelete car;\ncar = nullptr;```"],
+      ["Parámetros por referencia", "Para que una función devuelva varios valores, se pasan por referencia:\n```void GetPosition(int& x, int& y) const\n{\n    x = 10; y = 20;   // cambia las variables de quien llama\n}```"],
+      ["std::vector", "```std::vector<Car*> cars;\ncars.push_back(car);          // añadir al final\ncars.size();                  // cuántos\nfor (Car* c : cars) c->Update();\ncars.erase(cars.begin() + i); // quitar el i\ncars.clear();                 // vaciar (no hace delete)```"]
+    ],
+    preguntas: [
+      test("¿Qué guarda la variable `p`?", ["El valor 3", "La dirección de memoria de `vida`", "Una copia de `vida`", "Nada, es un error"], 1,
+        "`&vida` es la dirección de `vida`. Un puntero guarda direcciones.", { code: String.raw`int vida = 3;
+int* p = &vida;`, nuevo: true }),
+      test("Después de este código, ¿cuánto vale `vida`?", ["3", "1", "Es un error de compilación", "Una dirección"], 1,
+        "`*p` accede a lo apuntado: escribir en `*p` es escribir en `vida`.", { code: String.raw`int vida = 3;
+int* p = &vida;
+*p = 1;` }),
+      test("`body` es un `b2Body*`. ¿Cómo llamas a su función `GetMass()`?", ["`body.GetMass()`", "`body->GetMass()`", "`*body->GetMass()`", "`body::GetMass()`"], 1,
+        "Con un puntero se usa la flecha `->`. Con un objeto o una referencia, el punto `.`."),
+      test("`pbody` es un `PhysBody*` y dentro tiene `b2Body* body`. ¿Cómo obtienes la velocidad?", ["`pbody.body.GetLinearVelocity()`", "`pbody->body->GetLinearVelocity()`", "`pbody->body.GetLinearVelocity()`", "`pbody.body->GetLinearVelocity()`"], 1,
+        "Los dos son punteros: flecha en los dos saltos. Lo verás constantemente en el handout: `ball->body->body->ApplyForceToCenter(...)`."),
+      huecos("Completa: crea un coche con `new` y bórralo al final.", String.raw`Car* car = ▢ Car();
+car->Update();
+▢ car;
+car = ▢;`, ["new", "delete", "nullptr", "free", "malloc", "0.0f"], ["new", "delete", "nullptr"],
+        "Cada `new` tiene su `delete`. Poner el puntero a `nullptr` después evita usar memoria ya liberada.", { nuevo: true }),
+      test("¿Qué es una referencia (`int& r = vida;`)?", ["Una copia", "Otro nombre para la misma variable", "Un puntero que puede ser nulo", "Una constante"], 1,
+        "Cambiar `r` cambia `vida`. A diferencia de un puntero, no puede ser nula ni cambiar a qué apunta."),
+      test("¿Qué valores tienen `a` y `b` al acabar?", ["a = 0, b = 0", "a = 10, b = 20", "Error de compilación", "a y b sin inicializar"], 1,
+        "Los parámetros son referencias (`int&`): la función escribe en las variables de quien llama. Así funciona `PhysBody::GetPosition(int& x, int& y)`.",
+        { code: String.raw`void Get(int& x, int& y) { x = 10; y = 20; }
+
+int a = 0, b = 0;
+Get(a, b);` }),
+      bug("Esta función debería devolver la posición, pero quien la llama siempre recibe 0, 0. ¿Qué línea falla?", [
+        "void GetPosition(int x, int y) const",
+        "{",
+        "    b2Vec2 pos = body->GetPosition();",
+        "    x = METERS_TO_PIXELS(pos.x);",
+        "    y = METERS_TO_PIXELS(pos.y);",
+        "}"], 0,
+        "Sin `&`, `x` e `y` son copias: la función cambia sus copias y quien llama no se entera. Debe ser `int& x, int& y`."),
+      test("¿Qué significa el `const` del final?", ["Que devuelve una constante", "Que la función no modifica el objeto", "Que es estática", "Que no se puede llamar"], 1,
+        "Las funciones que solo leen (`Get…`, `Read…`) se marcan `const`. Así el compilador te avisa si cambias algo sin querer.", { code: String.raw`float GetSpeed() const;` }),
+      test("¿Qué hace `std::vector::push_back`?", ["Añade al principio", "Añade al final", "Borra el último", "Ordena"], 1, "`cars.push_back(car)` mete el coche al final de la lista."),
+      huecos("Recorre todos los coches y actualízalos.", String.raw`for (Car* ▢ : ▢)
+    car->▢();`, ["car", "cars", "Update", "size", "push_back", "Car"], ["car", "cars", "Update"],
+        "Bucle *range-for*: “para cada `car` de `cars`”. Es la forma más cómoda de recorrer un vector."),
+      escribe("Escribe la línea que añade el puntero `coin` al final del vector `items`.", ["items.push_back(coin)"],
+        "`push_back` añade al final.", { ph: "items..." }),
+      test("¿Qué hace `cars.clear()` con los `Car*` que había dentro?", ["Los borra con delete", "Solo vacía el vector: los objetos siguen en memoria (fuga si no los borraste)", "Los pone a nullptr", "Llama a su destructor"], 1,
+        "Un vector de punteros solo guarda direcciones. Hay que hacer `delete` de cada uno antes del `clear()`.", { nuevo: true }),
+      orden("Ordena el código para borrar todos los coches sin fugas de memoria.", [
+        "for (Car* car : cars)",
+        "{",
+        "    App->physics->DestroyBody(car->body);",
+        "    delete car;",
+        "}",
+        "cars.clear();"], "Primero el cuerpo de Box2D, después el objeto, y al final se vacía la lista. Si haces `clear()` antes, pierdes los punteros y ya no puedes borrarlos."),
+      test("¿Cuánto vale `r`?", ["2.5", "2", "3", "0"], 1,
+        "Dos enteros dan una división entera: se pierden los decimales. Para 2.5 escribe `5.0f / 2` o `(float)a / b`.", { code: String.raw`int a = 5, b = 2;
+float r = a / b;`, nuevo: true }),
+      escribe("Escribe la división de `frames` entre `seconds` (los dos `int`) para que el resultado tenga decimales.", [/^\(float\)frames\/seconds$/, /^\(float\)frames\/\(float\)seconds$/, /^frames\/\(float\)seconds$/, /^static_cast<float>\(frames\)\/seconds$/, /^\(double\)frames\/seconds$/],
+        "Basta con convertir uno de los dos a `float` (o `double`) antes de dividir: `(float)frames / seconds`.", { ph: "(float)..." }),
+      test("¿Para qué sirve `#pragma once` al principio de un `.h`?", ["Para compilar más rápido", "Para que el archivo no se incluya dos veces en el mismo .cpp", "Para que sea público", "Para Windows"], 1, "Sin él, incluir el mismo .h por dos caminos da errores de “redefinición”."),
+      test("¿Para qué sirve escribir `class PhysBody;` en un `.h` en lugar de `#include \"ModulePhysics.h\"`?", ["Para crear la clase", "Forward declaration: basta para declarar punteros `PhysBody*` y evita includes circulares", "Para hacerla abstracta", "Para nada"], 1,
+        "Si solo usas punteros o referencias a una clase, no necesitas su definición completa en el `.h`. El `#include` va en el `.cpp`.", { nuevo: true }),
+      test("¿Qué tiene de especial una variable `static` dentro de una clase?", ["Es constante", "Hay una sola copia compartida por todos los objetos de la clase", "No se puede leer", "Es privada"], 1,
+        "Ejemplo: `static constexpr float push_force = 100.0f;` en la clase Ball del handout: todas las bolas usan el mismo valor."),
+      bug("¿Qué línea provoca una fuga de memoria?", [
+        "void ModuleGame::CleanUp()",
+        "{",
+        "    cars.clear();",
+        "    for (Car* car : cars)",
+        "        delete car;",
+        "}"], 2, "Al hacer `clear()` primero, el bucle ya no recorre nada: los coches nunca se borran. El `clear()` va después del bucle."),
+      test("¿Qué es `0.5f`?", ["Un `double`", "Un `float`", "Un `int`", "Un error"], 1, "La `f` final indica `float`. Sin ella, `0.5` es `double`. El estilo del handout pide siempre `x.xf`."),
+      huecos("Un array dinámico de vértices: créalo y libéralo.", String.raw`b2Vec2* vertices = new b2Vec2[▢];
+...
+▢ vertices;`, ["count", "delete[]", "delete", "free", "size()"], ["count", "delete[]"],
+        "Un array creado con `new T[n]` se libera con `delete[]` (con corchetes). Es lo que hace `CreateChain` del handout.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "clases", titulo: "Clases, herencia y virtual", icono: "{ }",
+    desc: "Cómo se organizan Car, PlayerCar y AICar: herencia, funciones virtuales, constructores y destructores.",
+    chuleta: [
+      ["Herencia y virtual", "```class Car : public PhysicEntity\n{\npublic:\n    Car(ModulePhysics* physics, int x, int y);\n    void Update() override;            // reescribe la de PhysicEntity\n\nprotected:\n    virtual void Control(float& throttle, float& steer) = 0;   // pura: la escriben las hijas\n\n    float max_speed = 7.5f;\n};\n\nclass PlayerCar : public Car\n{\nprotected:\n    void Control(float& throttle, float& steer) override;   // teclado\n};```"],
+      ["Lista de inicialización", "El constructor de la hija llama al de la base después de `:`\n```Car::Car(ModulePhysics* physics, int x, int y)\n    : PhysicEntity(physics->CreateRectangle(x, y, 10, 20))\n{\n}```"],
+      ["Destructor virtual", "Si borras una hija a través de un puntero a la base, el destructor de la base debe ser `virtual`:\n```virtual ~PhysicEntity() = default;```"],
+      ["public / protected / private", "`public`: todo el mundo. `protected`: la clase y sus hijas. `private`: solo la clase."]
+    ],
+    preguntas: [
+      test("¿Qué significa `class Car : public PhysicEntity`?", ["Car contiene un PhysicEntity", "Car hereda de PhysicEntity: un Car *es un* PhysicEntity", "PhysicEntity hereda de Car", "Car es amiga de PhysicEntity"], 1,
+        "Car recibe todo lo de PhysicEntity (por ejemplo, su `body`) y se puede guardar en un `std::vector<PhysicEntity*>`.", { nuevo: true }),
+      test("¿Qué hace `virtual` en una función de la clase base?", ["La hace más rápida", "Permite que cada clase hija tenga su propia versión, y se llama la correcta aunque tengas un puntero a la base", "La hace privada", "La convierte en estática"], 1,
+        "Eso es polimorfismo: `for (PhysicEntity* e : entities) e->Update();` llama al Update de cada tipo real."),
+      test("¿Qué significa `= 0` al final de una función virtual?", ["Que devuelve 0", "Que es virtual pura: las hijas están obligadas a escribirla y la clase base no se puede crear", "Que está vacía", "Que es const"], 1,
+        "Una clase con una función virtual pura es abstracta. Por eso no puedes hacer `new Car()` si `Control` es `= 0`.", { code: String.raw`virtual void Control(float& throttle, float& steer) = 0;` }),
+      huecos("Declara que AICar reescribe el Control de Car.", String.raw`class AICar : ▢ Car
+{
+protected:
+    void Control(float& throttle, float& steer) ▢;
+};`, ["public", "override", "virtual", "private", "const", "= 0"], ["public", "override"],
+        "`override` hace que el compilador compruebe que de verdad existe esa función virtual en la base. Si te equivocas en la firma, te avisa."),
+      bug("Este PlayerCar nunca usa el teclado: se ejecuta el Control de Car (que no hace nada). ¿Qué línea falla?", [
+        "class Car : public PhysicEntity {",
+        "protected:",
+        "    void Control(float& throttle, float& steer) {}",
+        "};",
+        "class PlayerCar : public Car {",
+        "protected:",
+        "    void Control(float& throttle, float& steer);",
+        "};"], 2,
+        "Sin `virtual` en la base, la llamada desde Car usa siempre la versión de Car. Debe ser `virtual void Control(...) = 0;` (o `virtual ... {}`), y la hija con `override`."),
+      test("¿Qué hace la línea después de los dos puntos?", ["Crea una variable", "Llama al constructor de la clase base pasándole el cuerpo recién creado", "Llama a Update", "Es un comentario"], 1,
+        "Es la *lista de inicialización*. Primero se construye la parte de la base y después se ejecuta el cuerpo del constructor.",
+        { code: String.raw`Car::Car(ModulePhysics* physics, int x, int y)
+    : PhysicEntity(physics->CreateRectangle(x, y, 10, 20))
+{
+}`, nuevo: true }),
+      huecos("Completa el constructor de PlayerCar para que llame al de Car.", String.raw`PlayerCar::PlayerCar(ModulePhysics* physics, int x, int y)
+    ▢ ▢(physics, x, y)
+{
+}`, [":", "Car", "PhysicEntity", "->", "::", "new"], [":", "Car"],
+        "La hija llama al constructor de su base directa (Car), que a su vez llama al de PhysicEntity."),
+      test("¿Por qué el destructor de PhysicEntity debe ser `virtual`?", ["Para poder heredar", "Para que `delete entity` (con un `PhysicEntity*` que apunta a un Car) ejecute también el destructor de Car", "Para que vaya más rápido", "Es obligatorio en C++"], 1,
+        "Sin `virtual`, solo se ejecuta el destructor de la base: lo que la hija liberaba en su destructor se queda en memoria."),
+      test("¿Desde dónde se puede usar un miembro `protected`?", ["Desde cualquier sitio", "Desde la propia clase y sus clases hijas", "Solo desde la propia clase", "Solo desde main"], 1,
+        "Ideal para los ajustes del coche: Car y sus hijas los usan, el resto del juego no."),
+      test("Tienes `std::vector<PhysicEntity*> entities;` con coches, checkpoints y turbos. ¿Qué hace este bucle?", ["Llama al Update de PhysicEntity para todos", "Llama al Update de la clase real de cada objeto", "No compila", "Solo actualiza el primero"], 1,
+        "Polimorfismo: es la razón de que todo herede de una base con `virtual void Update()`.", { code: String.raw`for (PhysicEntity* e : entities)
+    e->Update();` }),
+      escribe("Declara en la clase base una función virtual pura `Update` que no recibe nada y no devuelve nada.", [/^virtualvoidUpdate\(\)=0$/],
+        "`virtual void Update() = 0;`", { ph: "virtual ..." }),
+      test("¿Qué hace `dynamic_cast<Car*>(entity)` si `entity` apunta a un Checkpoint?", ["Lo convierte igualmente", "Devuelve nullptr", "Crashea siempre", "Devuelve el Checkpoint"], 1,
+        "dynamic_cast comprueba el tipo real en ejecución. Útil en OnCollision: `Car* car = dynamic_cast<Car*>(...)` y luego `if (car != nullptr)`. (La clase debe tener alguna función virtual)."),
+      orden("Construye la clase base abstracta de todo lo que tiene cuerpo físico.", [
+        "class PhysicEntity",
+        "{",
+        "public:",
+        "    virtual ~PhysicEntity() = default;",
+        "    virtual void Update() = 0;",
+        "    PhysBody* body = nullptr;",
+        "};"], "Destructor virtual, Update virtual pura y el cuerpo. Es la PhysicEntity del handout."),
+      test("¿Qué diferencia hay entre `struct` y `class` en C++?", ["struct no puede tener funciones", "Solo la visibilidad por defecto: struct es public, class es private", "struct no puede heredar", "Ninguna"], 1,
+        "Se suele usar `struct` para datos simples (como `GridSlot { int x, y; float angle; }`) y `class` para objetos con comportamiento."),
+      bug("¿Qué línea no compila?", [
+        "class Car : public PhysicEntity {",
+        "protected:",
+        "    virtual void Control(float& t, float& s) = 0;",
+        "};",
+        "",
+        "Car* car = new Car(App->physics, 100, 100);"], 5,
+        "Car es abstracta (tiene una virtual pura): no se puede crear con `new Car`. Hay que crear una hija concreta: `new PlayerCar(...)`."),
+      test("¿Cuándo se ejecuta el constructor de una clase?", ["Al llamar a Start()", "Al crear el objeto (con new o en la pila)", "En el primer Update", "Al compilar"], 1,
+        "Por eso el handout crea el cuerpo de Box2D en la lista de inicialización: en cuanto existe el coche, existe su cuerpo."),
+      huecos("Un getter que no modifica el coche.", String.raw`▢ GetSpeed() ▢
+{
+    return speed;
+}`, ["float", "const", "void", "virtual", "static", "int&"], ["float", "const"],
+        "Getter: devuelve el valor y se marca `const` porque no cambia el objeto."),
+      test("¿Por qué separar Car (física) de PlayerCar y AICar (control)?", ["Porque C++ lo obliga", "Para escribir la física de conducción una sola vez; las hijas solo deciden acelerador y volante", "Para que compile más rápido", "No hay motivo"], 1,
+        "Es lo que valora el profesor como “código claro y bien estructurado, con el foco en la física”.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "enums", titulo: "Enums y máquinas de estados", icono: "FSM",
+    desc: "enum, enum class, switch y cómo organizar la carrera (cuenta atrás, carrera, final) y los estados del coche.",
+    chuleta: [
+      ["enum y enum class", "```enum RaceState { RACE_COUNTDOWN, RACE_RUNNING, RACE_FINISHED };   // valores 0, 1, 2\n\nenum class ColliderType { CAR, WALL, CHECKPOINT, BOOST };      // se usan con ColliderType::CAR```\n`enum class` no se convierte solo a int y sus nombres no chocan con otros: es la opción recomendada."],
+      ["Máquina de estados", "Una variable dice en qué estado estás, y un `switch` decide qué hacer en cada uno. Las transiciones son asignaciones a esa variable.\n```switch (state)\n{\ncase RACE_COUNTDOWN:\n    if (countdown.ReadSec() >= 3.0) { state = RACE_RUNNING; race_timer.Start(); }\n    break;\ncase RACE_RUNNING:\n    for (Car* c : cars) c->Update();\n    if (player->finished) state = RACE_FINISHED;\n    break;\ncase RACE_FINISHED:\n    if (IsKeyPressed(KEY_ENTER)) StartRace();\n    break;\n}```"],
+      ["Entrar en un estado", "Haz una función que cambie el estado y prepare lo necesario (reiniciar un timer, poner una animación). Así no se te olvida en ningún sitio:\n```void ChangeState(RaceState next)\n{\n    state = next;\n    state_timer.Start();\n    if (next == RACE_RUNNING) PlayFx(go_fx);\n}```"],
+      ["Flags de bits", "```enum Category : uint16 { CAT_WALL = 1 << 0, CAT_CAR = 1 << 1, CAT_SENSOR = 1 << 2 };\nuint16 mask = CAT_WALL | CAT_CAR;   // varios a la vez\nif (mask & CAT_CAR) { ... }         // ¿contiene CAR?```"]
+    ],
+    preguntas: [
+      test("¿Qué valor tiene `RACE_RUNNING`?", ["0", "1", "2", "Ninguno"], 1, "Un enum numera desde 0 si no dices otra cosa.", { code: String.raw`enum RaceState { RACE_COUNTDOWN, RACE_RUNNING, RACE_FINISHED };`, nuevo: true }),
+      test("¿Qué ventaja tiene `enum class` sobre `enum`?", ["Ocupa menos", "Sus valores no se mezclan con otros nombres ni se convierten solos a int: menos errores", "Es más rápido", "Permite decimales"], 1,
+        "Con `enum class ColliderType { CAR, WALL }` escribes `ColliderType::CAR`. Un `WALL` de otro enum no chocará con este."),
+      huecos("Declara los tipos de collider del juego.", String.raw`▢ ▢ ColliderType
+{
+    CAR, WALL, CHECKPOINT, BOOST, OIL
+};`, ["enum", "class", "struct", "int", "const", "virtual"], ["enum", "class"],
+        "`enum class` + nombre + lista de valores."),
+      escribe("Escribe la comparación que comprueba si el `ctype` del cuerpo `other` es un muro (`WALL` del enum class `ColliderType`).", ["other->ctype == ColliderType::WALL", "other->ctype==ColliderType::WALL", "ColliderType::WALL == other->ctype"],
+        "Con `enum class` siempre se escribe el nombre del enum delante: `ColliderType::WALL`.", { ph: "other->ctype ..." }),
+      test("¿Qué es una máquina de estados?", ["Una clase de Box2D", "Una variable que dice en qué situación está algo, y reglas para pasar de una situación a otra", "Un tipo de bucle", "Un joint"], 1,
+        "Ejemplos del proyecto: la carrera (cuenta atrás → corriendo → terminada) o el coche (normal → turbo → trompo).", { nuevo: true }),
+      orden("Ordena la máquina de estados de la carrera.", [
+        "switch (state)",
+        "{",
+        "case RACE_COUNTDOWN:",
+        "    if (countdown.ReadSec() >= 3.0) state = RACE_RUNNING;",
+        "    break;",
+        "case RACE_RUNNING:",
+        "    if (player->finished) state = RACE_FINISHED;",
+        "    break;",
+        "}"], "Cada `case` hace lo de su estado y, si se cumple una condición, cambia de estado. Cada uno termina en `break`."),
+      bug("La cuenta atrás termina y en el mismo frame los coches ya se actualizan como si la carrera hubiera acabado. ¿Qué línea falla?", [
+        "switch (state)",
+        "{",
+        "case RACE_COUNTDOWN:",
+        "    if (countdown.ReadSec() >= 3.0) state = RACE_RUNNING;",
+        "case RACE_RUNNING:",
+        "    for (Car* c : cars) c->Update();",
+        "    break;",
+        "}"], 3,
+        "Falta el `break;` después del caso RACE_COUNTDOWN: la ejecución “cae” al siguiente case. Un clásico."),
+      test("¿Qué pasa al llegar a un `case` sin `break`?", ["Error de compilación", "Se sigue ejecutando el código del siguiente case", "Se sale del switch", "Se repite"], 1,
+        "Se llama *fall-through*. A veces se usa a propósito para agrupar casos, pero casi siempre es un bug."),
+      huecos("Los coches no se mueven durante la cuenta atrás: completa.", String.raw`case ▢:
+    if (countdown.ReadSec() >= 3.0)
+    {
+        state = ▢;
+        race_timer.Start();
+    }
+    ▢;`, ["RACE_COUNTDOWN", "RACE_RUNNING", "break", "RACE_FINISHED", "continue", "return"], ["RACE_COUNTDOWN", "RACE_RUNNING", "break"],
+        "En la cuenta atrás no se llama a `car->Update()`; al pasar a RACE_RUNNING arranca el cronómetro."),
+      test("¿Por qué conviene una función `ChangeState(next)` en vez de hacer `state = X;` en muchos sitios?", ["Es más rápido", "Para hacer siempre lo que toca al entrar en un estado (reiniciar timers, sonidos…) en un solo sitio", "Porque switch lo exige", "No conviene"], 1,
+        "Si el turbo debe arrancar un timer al empezar, ponlo en ChangeState: no se te olvidará en ninguna transición."),
+      test("Un coche puede estar NORMAL, BOOST (2 s) o SPIN (trompo tras chocar con aceite, 1 s). ¿Qué necesitas?", ["Tres bools", "Un enum class CarState, una variable state y un Timer state_timer", "Un vector", "Un joint"], 1,
+        "Con tres bools podrías estar en BOOST y SPIN a la vez sin querer. Con un enum solo hay un estado activo."),
+      orden("Ordena el Update del coche con estados.", [
+        "switch (car_state)",
+        "{",
+        "case CarState::BOOST:",
+        "    max_speed = base_speed * 1.5f;",
+        "    if (state_timer.ReadSec() > 2.0) ChangeState(CarState::NORMAL);",
+        "    break;",
+        "case CarState::NORMAL:",
+        "    max_speed = base_speed;",
+        "    break;",
+        "}"], "Cada estado decide sus parámetros y cuándo salir. El timer se reinicia dentro de ChangeState."),
+      escribe("Escribe la condición: ha pasado más de 1.5 segundos desde que arrancó el `Timer` llamado `state_timer` (tiene `ReadSec()`).", [/^state_timer\.ReadSec\(\)>1\.5f?$/, /^state_timer\.ReadSec\(\)>=1\.5f?$/, /^1\.5f?<state_timer\.ReadSec\(\)$/],
+        "`state_timer.ReadSec() > 1.5`.", { ph: "state_timer..." }),
+      test("¿Cuánto vale `1 << 3`?", ["3", "4", "8", "13"], 2, "Desplazar 1 tres posiciones: binario 1000 = 8. Así se crean flags de un solo bit.", { nuevo: true }),
+      test("`mask = CAT_WALL | CAT_CAR;` con `CAT_WALL = 1` y `CAT_CAR = 2`. ¿Cuánto vale `mask`?", ["1", "2", "3", "0"], 2, "OR de bits: 01 | 10 = 11 = 3. La máscara “contiene” las dos categorías."),
+      escribe("Escribe la condición que comprueba si `mask` contiene el bit `CAT_CAR`.", ["(mask & CAT_CAR) != 0", "mask & CAT_CAR", "(mask&CAT_CAR)", "(mask & CAT_CAR) == CAT_CAR"],
+        "Con `&` (AND de bits): si el resultado no es 0, el bit está.", { ph: "(mask ..." }),
+      test("¿Para qué sirve `switch` con un `default:`?", ["Para el primer caso", "Para cualquier valor que no tenga su propio case", "Para salir del bucle", "Es obligatorio"], 1, "Útil para detectar estados no previstos: `default: LOG(\"estado desconocido\"); break;`"),
+      bug("El juego muestra “YOU LOSE” aunque ganes. ¿Qué línea tiene el error?", [
+        "if (player->place = 1)",
+        "    DrawText(\"YOU WIN!\", 700, 260, 60, GOLD);",
+        "else",
+        "    DrawText(\"YOU LOSE\", 700, 260, 60, WHITE);"], 0,
+        "`=` asigna (pone place a 1 y siempre es verdadero), `==` compara. Debe ser `player->place == 1`. Muchos compiladores avisan: no ignores los warnings."),
+      test("En la pantalla de título del juego, ¿qué es más limpio?", ["Un bool title y otro bool playing", "Añadir RACE_TITLE al enum de estados de la carrera", "Otro módulo entero", "Un joint"], 1,
+        "Un estado más en la misma máquina: `RACE_TITLE → RACE_COUNTDOWN → RACE_RUNNING → RACE_FINISHED`.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "motor", titulo: "El motor del handout (Raylib)", icono: "App",
+    desc: "Application, módulos, update_status, Timer, teclado y dibujar texturas rotadas con Raylib.",
+    chuleta: [
+      ["Módulos", "```class ModuleGame : public Module\n{\npublic:\n    bool Start() override;          // cargar recursos\n    update_status Update() override; // cada frame\n    bool CleanUp() override;        // liberar\n    void OnCollision(PhysBody* a, PhysBody* b) override;\n};```\nDevolver `UPDATE_STOP` cierra el juego. Orden en Application: window, physics, audio, scene, renderer."],
+      ["Teclado de Raylib", "`IsKeyDown(KEY_A)`: mientras está pulsada. `IsKeyPressed(KEY_SPACE)`: solo el frame en que se pulsa. `IsKeyReleased(...)`: el frame en que se suelta."],
+      ["Dibujar centrado y rotado", "```int x, y;\nbody->GetPosition(x, y);   // centro en píxeles\nRectangle src = { 0, 0, (float)tex.width, (float)tex.height };\nRectangle dst = { (float)x, (float)y, (float)tex.width, (float)tex.height };\nVector2 origin = { tex.width / 2.0f, tex.height / 2.0f };\nDrawTexturePro(tex, src, dst, origin, body->GetRotation() * RAD2DEG, WHITE);```"],
+      ["Timer", "```Timer t;           // empieza al crearse\nt.Start();         // reiniciar\ndouble s = t.ReadSec();```"]
+    ],
+    preguntas: [
+      test("¿Qué devuelve `Update()` en un módulo del handout para que el juego siga?", ["`true`", "`UPDATE_CONTINUE`", "`0`", "`UPDATE_STOP`"], 1,
+        "`update_status` puede ser UPDATE_CONTINUE, UPDATE_STOP (cerrar) o UPDATE_ERROR.", { nuevo: true }),
+      test("¿En qué función de un módulo cargas texturas y sonidos?", ["Constructor", "Start", "Update", "PostUpdate"], 1, "Start se llama una vez, cuando la ventana y el audio ya están inicializados (Init)."),
+      test("¿Por qué ModulePhysics va antes que ModuleGame en Application?", ["Por orden alfabético", "Para que el Step de este frame ya esté hecho cuando el juego lea las posiciones", "Porque Raylib lo exige", "Da igual"], 1,
+        "ModulePhysics::PreUpdate hace el Step; luego ModuleGame::Update lee posiciones y dibuja."),
+      test("Para acelerar mientras mantienes la tecla, usas…", ["`IsKeyPressed(KEY_UP)`", "`IsKeyDown(KEY_UP)`", "`IsKeyReleased(KEY_UP)`", "`GetKeyPressed()`"], 1, "IsKeyDown es verdadero todos los frames que la tecla esté pulsada."),
+      test("Para disparar el nitro una sola vez por pulsación, usas…", ["`IsKeyDown(KEY_SPACE)`", "`IsKeyPressed(KEY_SPACE)`", "`IsKeyUp(KEY_SPACE)`", "un bucle while"], 1, "IsKeyPressed solo es verdadero el frame en que se pulsa."),
+      huecos("Lee el giro con flechas o con A y D (requisito del proyecto).", String.raw`float steer = 0.0f;
+if (IsKeyDown(KEY_LEFT) ▢ IsKeyDown(KEY_A)) steer -= 1.0f;
+if (IsKeyDown(KEY_RIGHT) || ▢(KEY_D)) steer += 1.0f;`, ["||", "&&", "IsKeyDown", "IsKeyPressed", "|", "!"], ["||", "IsKeyDown"],
+        "`||` es “o”: cualquiera de las dos teclas sirve. Con `&&` habría que pulsar las dos a la vez."),
+      test("`GetPosition(x, y)` devuelve el centro del cuerpo. Si dibujas con `DrawTexture(tex, x, y, WHITE)`, ¿qué pasa?", ["Se ve perfecto", "La textura sale desplazada media medida abajo a la derecha", "No se ve", "Sale rotada"], 1,
+        "DrawTexture pone en (x, y) la esquina superior izquierda. Hay que restar la mitad o usar DrawTexturePro con origin en el centro."),
+      huecos("Dibuja el coche centrado y rotado.", String.raw`Vector2 origin = { tex.width / ▢, tex.height / 2.0f };
+DrawTexturePro(tex, src, dst, origin, body->GetRotation() * ▢, WHITE);`, ["2.0f", "RAD2DEG", "DEG2RAD", "2", "PI", "0.5f"], ["2.0f", "RAD2DEG"],
+        "El origin en el centro hace que la textura quede centrada y gire sobre su centro. Box2D da radianes y Raylib quiere grados: `* RAD2DEG`."),
+      test("`GetRotation()` devuelve 1.5708. Si se lo pasas a DrawTexturePro sin convertir, ¿qué ves?", ["Gira 90°", "Gira solo 1,57° (casi nada)", "No compila", "Gira al revés"], 1, "1,5708 rad son 90°, pero Raylib lo interpreta como grados."),
+      escribe("Escribe la expresión que pasa el ángulo de `body` (con `GetRotation()`, en radianes) a grados para Raylib.", ["body->GetRotation() * RAD2DEG", "body->GetRotation()*RAD2DEG", "RAD2DEG * body->GetRotation()", "body->GetRotation() * RADTODEG"],
+        "`body->GetRotation() * RAD2DEG` (el handout también define RADTODEG).", { ph: "body->..." }),
+      test("¿Qué hace `Timer::Start()`?", ["Pausa el timer", "Apunta la hora actual: ReadSec() cuenta desde aquí", "Devuelve los segundos", "Lo destruye"], 1, "Para medir una vuelta: `lap_timer.Start()` al cruzar la meta y `lap_timer.ReadSec()` para leer."),
+      orden("Ordena el Start de ModuleGame.", [
+        "bool ModuleGame::Start()",
+        "{",
+        "    car_tex = LoadTexture(\"Assets/car.png\");",
+        "    lap_fx = App->audio->LoadFx(\"Assets/lap.wav\");",
+        "    player = new PlayerCar(App->physics, 600, 100);",
+        "    return true;",
+        "}"], "Start carga recursos y crea los objetos iniciales. Devuelve true si todo fue bien."),
+      bug("Falta una línea y la textura `car_tex` nunca se libera. ¿Delante de qué línea debería ir?", [
+        "bool ModuleGame::CleanUp()",
+        "{",
+        "    App->physics->DestroyBody(player->body);",
+        "    delete player;",
+        "    return true;",
+        "}"], 4,
+        "No se libera la textura cargada en Start: falta `UnloadTexture(car_tex);` antes del return. Todo Load tiene su Unload."),
+      test("¿Qué hace `TextFormat(\"Lap %d/%d\", lap, 3)`?", ["Dibuja texto", "Construye el texto \"Lap 1/3\" sustituyendo cada %d por un entero", "Lee un archivo", "Formatea el disco"], 1, "`%d` entero, `%.2f` decimal con 2 cifras, `%s` texto. Luego se pasa a DrawText."),
+      escribe("Escribe la llamada que dibuja con DrawText el tiempo `t` (double) con 2 decimales, en (20, 50), tamaño 24, color WHITE. Usa TextFormat.", [/^DrawText\(TextFormat\("[^"]*%\.2f[^"]*",t\),20,50,24,WHITE\)$/],
+        "`DrawText(TextFormat(\"Time %.2f\", t), 20, 50, 24, WHITE);`", { ph: "DrawText(TextFormat(..." }),
+      test("¿Dónde dibujas el HUD para que no se mueva con la cámara (Camera2D)?", ["Dentro de BeginMode2D/EndMode2D", "Después de EndMode2D", "En Start", "En CleanUp"], 1, "Lo de dentro de BeginMode2D se mueve con la cámara; lo de fuera queda fijo en pantalla."),
+      test("¿Qué pasa si una función de un módulo devuelve `UPDATE_STOP`?", ["Se pausa", "El juego termina limpiamente: se llama a CleanUp de todos los módulos", "Se reinicia la carrera", "Nada"], 1, "Por ejemplo, al pulsar ESC."),
+      test("¿Qué hace `LOG(\"Speed %f\", s)` en el handout?", ["Dibuja en pantalla", "Escribe un mensaje de depuración con archivo y línea", "Cierra el juego", "Guarda en disco"], 1, "Úsalo para comprobar valores (velocidad, checkpoint siguiente…) sin poner breakpoints.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "mundo", titulo: "Box2D: mundo, cuerpos y fixtures", icono: "b2",
+    desc: "b2World, Step, metros y píxeles, tipos de cuerpo, b2BodyDef, fixtures, densidad, fricción y rebote.",
+    chuleta: [
+      ["Las 4 piezas", "`b2World` (el universo) → `b2Body` (posición, velocidad, masa; sin forma) → `b2Shape` (geometría) → `b2Fixture` (pega la forma al cuerpo con material: densidad, fricción, rebote, sensor, filtro)."],
+      ["Crear un cuerpo", "```b2BodyDef def;\ndef.type = b2_dynamicBody;\ndef.position.Set(PIXEL_TO_METERS(x), PIXEL_TO_METERS(y));\nb2Body* b = world->CreateBody(&def);\n\nb2PolygonShape box;\nbox.SetAsBox(PIXEL_TO_METERS(half_w), PIXEL_TO_METERS(half_h));\n\nb2FixtureDef fix;\nfix.shape = &box;\nfix.density = 1.0f;\nfix.friction = 0.3f;\nfix.restitution = 0.1f;\nb->CreateFixture(&fix);```"],
+      ["Unidades", "Box2D en metros, Raylib en píxeles. `PIXELS_PER_METER 50`. Todo lo que entra se convierte con `PIXEL_TO_METERS`, todo lo que sale con `METERS_TO_PIXELS`. Velocidades en m/s, fuerzas en N, ángulos en radianes."],
+      ["Step", "`world->Step(1.0f / 60.0f, 8, 3);` en PreUpdate. Tiempo fijo + iteraciones de velocidad y posición."]
+    ],
+    preguntas: [
+      test("¿Cuál de estas piezas tiene la densidad, la fricción y la restitución?", ["b2World", "b2Body", "b2Fixture", "b2Vec2"], 2, "La fixture pega la forma al cuerpo y le da el material.", { nuevo: true }),
+      test("¿Cómo se crea un cuerpo en Box2D 2.4?", ["`new b2Body()`", "Se rellena una `b2BodyDef` y se llama a `world->CreateBody(&def)`", "`b2Body::Create()`", "`CreateBody(world)`"], 1, "Patrón *definición + fábrica*: el mundo crea el cuerpo y es su dueño."),
+      orden("Ordena la creación de un cuerpo dinámico.", [
+        "b2BodyDef def;",
+        "def.type = b2_dynamicBody;",
+        "def.position.Set(PIXEL_TO_METERS(x), PIXEL_TO_METERS(y));",
+        "b2Body* b = world->CreateBody(&def);"], "Definición → tipo → posición en metros → crear."),
+      orden("Ordena la creación de la fixture del cuerpo `b` con una caja.", [
+        "b2PolygonShape box;",
+        "box.SetAsBox(PIXEL_TO_METERS(half_w), PIXEL_TO_METERS(half_h));",
+        "b2FixtureDef fix;",
+        "fix.shape = &box;",
+        "fix.density = 1.0f;",
+        "b->CreateFixture(&fix);"], "Forma → definición de fixture → forma + material → CreateFixture.", { extra: ["b->CreateBody(&fix);"] }),
+      test("Con `PIXELS_PER_METER = 50`, un coche de 40 × 80 px mide en Box2D…", ["40 × 80 m", "0,8 × 1,6 m", "2 × 4 m", "0,4 × 0,8 m"], 1, "40 / 50 = 0,8 y 80 / 50 = 1,6. Box2D funciona bien con objetos de 0,1 a 10 m."),
+      escribe("Escribe la expresión que convierte la posición x de un cuerpo (`pos.x`, en metros) a píxeles con la macro del handout.", ["METERS_TO_PIXELS(pos.x)"], "Lo que sale de Box2D se convierte con METERS_TO_PIXELS.", { ph: "METERS..." }),
+      test("¿Qué tipo de cuerpo son los muros del circuito?", ["`b2_dynamicBody`", "`b2_staticBody`", "`b2_kinematicBody`", "Da igual"], 1, "No se mueven nunca: estáticos (masa infinita)."),
+      test("¿Qué tipo usarías para una barrera que se mueve sola de lado a lado y empuja a los coches, pero a la que los coches no pueden mover?", ["dynamic", "static", "kinematic", "sensor"], 2, "Kinematic: se mueve con la velocidad que le das y no le afectan choques ni fuerzas."),
+      test("¿Qué hace `world->Step(PHYSICS_DT, 8, 3)`?", ["Dibuja el mundo", "Avanza la simulación 1/60 s: integra velocidades y posiciones y resuelve choques", "Crea el mundo", "Borra los cuerpos"], 1, "8 y 3 son iteraciones del solver de velocidad y posición (más = más preciso y más lento).", { nuevo: true }),
+      test("¿Por qué el Step usa un tiempo fijo (1/60) y no el tiempo real del frame?", ["Porque es más rápido", "Para que la simulación dé el mismo resultado en cualquier PC", "Por obligación de Raylib", "Para ahorrar memoria"], 1, "Con un dt variable, un salto o un derrape cambiarían según los fps."),
+      test("Para un juego de carreras visto desde arriba, la gravedad del mundo debe ser…", ["(0, 10)", "(0, -10)", "(0, 0)", "(10, 0)"], 2, "La gravedad real apunta hacia la pantalla; Box2D no tiene eje Z. Si no es 0, todo “cae” hacia abajo de la pantalla."),
+      huecos("Crea el mundo sin gravedad (vista cenital).", String.raw`world = new ▢(b2Vec2(▢, ▢));`, ["b2World", "0.0f", "0.0f", "-10.0f", "b2Body", "9.8f"], ["b2World", "0.0f", "0.0f"], "Gravedad (0, 0)."),
+      test("Masa de un cuerpo con una fixture de densidad 2 y área 0,5 m²…", ["0,25 kg", "1 kg", "2,5 kg", "4 kg"], 1, "masa = densidad × área = 2 × 0,5 = 1 kg."),
+      test("¿Qué hace `restitution = 1.0f`?", ["Sin rebote", "Rebote perfecto: rebota con la misma velocidad", "Fricción total", "Masa infinita"], 1, "0 = no rebota, 1 = rebote perfecto. Para coches algo bajo (0,1–0,3)."),
+      test("¿Qué pasa con un cuerpo dinámico con densidad 0?", ["Flota", "Box2D le pone masa 1 kg y se comporta raro", "No se puede crear", "Es estático"], 1, "Pon siempre densidad > 0 en los cuerpos dinámicos."),
+      bug("Este Start deja `world` a NULL y el juego revienta en el primer CreateBody. ¿Qué línea falla?", [
+        "bool ModulePhysics::Start()",
+        "{",
+        "    b2World* world = new b2World(b2Vec2(0.0f, 0.0f));",
+        "    world->SetContactListener(this);",
+        "    return true;",
+        "}"], 2, "Declara una variable local `world` que tapa al miembro. Debe ser `world = new b2World(...)` sin el tipo delante."),
+      test("¿Qué libera `delete world;` en CleanUp?", ["Solo el mundo", "El mundo y todos sus cuerpos, fixtures y joints", "Nada", "Tus PhysBody"], 1, "Box2D es dueño de todo lo que creó. Pero tus PhysBody y entidades (creados con new) los borras tú."),
+      escribe("Escribe la línea que avanza la simulación con el paso fijo `PHYSICS_DT` y 8 y 3 iteraciones.", ["world->Step(PHYSICS_DT, 8, 3)", "world->Step(PHYSICS_DT,8,3)"], "", { ph: "world->..." }),
+      test("¿Qué representa `b->GetPosition()`?", ["La esquina superior izquierda, en píxeles", "El origen del cuerpo (su centro si la forma está centrada), en metros", "El centro de la pantalla", "La velocidad"], 1, "Metros, y el centro. Por eso hay que convertir y centrar la textura.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "formas", titulo: "Formas: cajas, círculos y cadenas", icono: "▭○",
+    desc: "SetAsBox con medias medidas, círculos, polígonos convexos, cadenas para el circuito y varias fixtures en un cuerpo.",
+    chuleta: [
+      ["Caja y círculo", "```b2PolygonShape box;\nbox.SetAsBox(hx, hy);                     // MEDIAS medidas, en metros\nbox.SetAsBox(hx, hy, b2Vec2(0, -1), 0);   // desplazada del centro y girada\n\nb2CircleShape circle;\ncircle.m_radius = PIXEL_TO_METERS(r);\ncircle.m_p.Set(0, 0);                     // centro local```"],
+      ["Cadena (muros del circuito)", "```b2Vec2* v = new b2Vec2[count];\nfor (int i = 0; i < count; ++i)\n    v[i].Set(PIXEL_TO_METERS(points[i * 2]), PIXEL_TO_METERS(points[i * 2 + 1]));\nb2ChainShape chain;\nchain.CreateLoop(v, count);   // cerrada\ndelete[] v;```\nEn 2.4 las cadenas chocan por un lado: dentro del recinto → antihorario; isla → horario."],
+      ["Varias fixtures", "Un body puede tener varias: un chasis y un alerón, cada uno con su forma. La masa total se suma."]
+    ],
+    preguntas: [
+      test("Quieres una caja de 2 × 1 metros. ¿Qué escribes?", ["`SetAsBox(2, 1)`", "`SetAsBox(1, 0.5f)`", "`SetAsBox(4, 2)`", "`SetAsBox(0.5f, 0.25f)`"], 1, "SetAsBox recibe la mitad del ancho y la mitad del alto.", { nuevo: true }),
+      escribe("Escribe la llamada a SetAsBox de `box` para un coche de 40 × 80 píxeles (usa PIXEL_TO_METERS).", ["box.SetAsBox(PIXEL_TO_METERS(20), PIXEL_TO_METERS(40))", "box.SetAsBox(PIXEL_TO_METERS(40/2), PIXEL_TO_METERS(80/2))", "box.SetAsBox(PIXEL_TO_METERS(40)/2, PIXEL_TO_METERS(80)/2)"],
+        "Medias medidas: 20 y 40 píxeles, convertidos a metros.", { ph: "box.SetAsBox(..." }),
+      huecos("Un círculo de radio `r` píxeles.", String.raw`b2CircleShape shape;
+shape.▢ = ▢(r);`, ["m_radius", "PIXEL_TO_METERS", "radius", "METERS_TO_PIXELS", "m_p"], ["m_radius", "PIXEL_TO_METERS"], "El radio es un campo público, `m_radius`, en metros."),
+      test("¿Qué condición debe cumplir un `b2PolygonShape`?", ["Tener 4 lados", "Ser convexo y tener como mucho 8 vértices", "Ser cuadrado", "Ninguna"], 1, "Para formas cóncavas (una L, un coche con alerón) se usan varias fixtures convexas en el mismo cuerpo."),
+      test("¿Por qué los muros del circuito se hacen con `b2ChainShape` y no con muchos edges sueltos?", ["Porque son más bonitos", "Las cadenas evitan las colisiones fantasma en las uniones entre segmentos", "Los edges no chocan", "Son dinámicas"], 1, "Cada segmento de la cadena conoce a sus vecinos: los coches no se “enganchan” al rozar el muro."),
+      test("Los coches corren por dentro del muro exterior. ¿En qué orden van sus vértices (en pantalla)?", ["Horario", "Antihorario", "Da igual", "De izquierda a derecha"], 1, "En Box2D 2.4 las cadenas chocan por un solo lado. Con el orden al revés, los coches atraviesan el muro."),
+      huecos("Convierte el array de ints en vértices.", String.raw`for (int i = 0; i < count; ++i)
+{
+    vertices[i].x = PIXEL_TO_METERS(points[▢]);
+    vertices[i].y = PIXEL_TO_METERS(points[▢]);
+}`, ["i * 2", "i * 2 + 1", "i", "i + 1", "count"], ["i * 2", "i * 2 + 1"], "Cada vértice ocupa dos ints: x en la posición par, y en la impar."),
+      test("¿Qué diferencia hay entre `CreateLoop` y `CreateChain`?", ["Ninguna", "CreateLoop une el último vértice con el primero (cerrada); CreateChain la deja abierta", "CreateChain es más rápida", "CreateLoop es dinámica"], 1, "Para los muros cerrados del circuito: CreateLoop."),
+      escribe("`CreateChain(x, y, points, size)` recibe el número de ints. Escribe el último argumento para el array `track_outer` sin contar a mano.", ["sizeof(track_outer) / sizeof(int)", "sizeof(track_outer)/sizeof(int)", "sizeof(track_outer)/sizeof(track_outer[0])"],
+        "sizeof del array da bytes; dividido por los bytes de un int, el número de elementos.", { ph: "sizeof(..." }),
+      test("¿Qué tipo de cuerpo debe tener una cadena?", ["dynamic", "static (o kinematic)", "Da igual", "sensor"], 1, "Una cadena no tiene área: no tiene masa. Como dinámica no funcionaría."),
+      orden("Crea una cadena cerrada a partir de `points` (píxeles).", [
+        "int count = size / 2;",
+        "b2Vec2* v = new b2Vec2[count];",
+        "for (int i = 0; i < count; ++i) v[i].Set(PIXEL_TO_METERS(points[i * 2]), PIXEL_TO_METERS(points[i * 2 + 1]));",
+        "b2ChainShape shape;",
+        "shape.CreateLoop(v, count);",
+        "delete[] v;"], "CreateLoop copia los vértices: el array se puede liberar después."),
+      test("¿Qué devuelve `TestPoint` en una cadena?", ["true si el punto está dentro", "Siempre false: una cadena no tiene volumen", "La distancia", "Error"], 1, "Una cadena son líneas. Para saber si el coche está dentro de la pista, usa otra cosa (sensores o waypoints)."),
+      test("Quieres un coche con un alerón detrás (forma en T). ¿Cómo?", ["Un solo polígono cóncavo", "Un body con dos fixtures: el chasis y el alerón", "Dos bodies sin unir", "Un círculo"], 1, "Usa la versión de SetAsBox con centro: `wing.SetAsBox(hx, hy, b2Vec2(0, 0.8f), 0)`."),
+      huecos("Un alerón de 1 × 0,2 m desplazado 0,8 m hacia atrás del centro del coche (el morro apunta a -Y).", String.raw`b2PolygonShape wing;
+wing.SetAsBox(0.5f, 0.1f, b2Vec2(0.0f, ▢), ▢);`, ["0.8f", "0.0f", "-0.8f", "1.0f", "90"], ["0.8f", "0.0f"],
+        "Hacia atrás es +Y si el morro mira a -Y. Ángulo 0: sin girar."),
+      bug("Esta caja sale el doble de grande que su textura de 100 × 50. ¿Qué línea falla?", [
+        "PhysBody* pbody = App->physics->CreateRectangle(x, y, 100, 50);",
+        "// CreateRectangle(int x, int y, int half_width, int half_height)"], 0, "CreateRectangle del handout recibe medias medidas: debe ser 50, 25."),
+      test("¿Dónde está el origen de una forma creada con `SetAsBox(hx, hy)`?", ["En la esquina", "En el centro del cuerpo", "En (0, 0) del mundo", "Abajo"], 1, "Por eso GetPosition da el centro y hay que dibujar con origin centrado.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "mover", titulo: "Mover cuerpos: fuerzas, impulsos y vectores", icono: "F→",
+    desc: "SetLinearVelocity, ApplyForce, ApplyLinearImpulse, torque, damping, b2Vec2, b2Dot y GetWorldVector.",
+    chuleta: [
+      ["Tres formas de mover", "```b->SetLinearVelocity(b2Vec2(3, 0));                 // fija la velocidad YA\nb->ApplyForceToCenter(b2Vec2(10, 0), true);         // empuje continuo: aplícalo CADA frame\nb->ApplyLinearImpulse(b2Vec2(5, 0), b->GetWorldCenter(), true);   // golpe instantáneo (Δv = I / m)```"],
+      ["Girar", "```b->SetAngularVelocity(2.0f);          // rad/s\nb->ApplyTorque(5.0f, true);            // fuerza de giro continua\nb->SetAngularDamping(3.0f);            // rozamiento al giro```"],
+      ["Vectores", "```b2Vec2 v(3, 4);\nv.Length();                 // 5\nv.Normalize();              // ahora mide 1 (misma dirección)\nb2Dot(a, b);                // cuánto de b va en la dirección de a\nb2Vec2 f = b->GetWorldVector(b2Vec2(0, -1));   // el 'arriba' del cuerpo, girado con él\nb2Vec2 local = b->GetLocalPoint(punto);        // un punto visto desde el cuerpo```"],
+      ["Teletransportar", "```b->SetTransform(b2Vec2(x, y), angle);\nb->SetLinearVelocity(b2Vec2_zero);\nb->SetAngularVelocity(0);\nb->SetAwake(true);```"]
+    ],
+    preguntas: [
+      test("Aplicas `ApplyForceToCenter` una sola vez y el coche apenas se mueve. ¿Por qué?", ["La fuerza es pequeña", "Las fuerzas se borran tras cada Step: hay que aplicarlas cada frame", "Falta SetAwake", "Es estático"], 1, "Una fuerza dura un paso. Para un empujón único se usa un impulso.", { nuevo: true }),
+      test("¿Cuál usarías para el salto o el nitro instantáneo?", ["ApplyForceToCenter", "ApplyLinearImpulse", "SetTransform", "ApplyTorque"], 1, "Un impulso cambia la velocidad al instante: Δv = impulso / masa."),
+      test("¿Cuál usarías para el motor del coche (empuje mientras aceleras)?", ["ApplyLinearImpulse una vez", "ApplyForceToCenter cada frame mientras se pulsa", "SetTransform", "SetAngularVelocity"], 1, "Fuerza continua aplicada en cada Update."),
+      huecos("Empuja el coche hacia delante con la fuerza del motor.", String.raw`b2Vec2 forward = b->▢(b2Vec2(0.0f, -1.0f));
+b->▢(engine_force * forward, true);`, ["GetWorldVector", "ApplyForceToCenter", "GetWorldPoint", "SetTransform", "ApplyTorque"], ["GetWorldVector", "ApplyForceToCenter"],
+        "GetWorldVector gira la dirección local del morro con el coche; luego se empuja en esa dirección.", { nuevo: true }),
+      test("¿Qué diferencia hay entre `GetWorldVector` y `GetWorldPoint`?", ["Ninguna", "Vector solo gira una dirección; Point gira y además suma la posición del cuerpo", "Point es más rápido", "Vector da píxeles"], 1, "Dirección del morro → GetWorldVector. Posición de una rueda en el mundo → GetWorldPoint."),
+      test("¿Cuánto vale `b2Vec2(3, 4).Length()`?", ["7", "5", "12", "25"], 1, "√(3² + 4²) = 5."),
+      test("¿Qué hace `Normalize()` sobre un vector?", ["Lo pone a cero", "Lo deja con longitud 1 manteniendo la dirección", "Lo invierte", "Lo redondea"], 1, "Útil para tener solo la dirección y multiplicarla luego por la fuerza que quieras."),
+      test("`b2Dot(a, b)` con a = (1, 0) y b = (3, 4) vale…", ["3", "4", "5", "7"], 0, "1·3 + 0·4 = 3: la parte de b que va en la dirección de a.", { nuevo: true }),
+      escribe("Escribe la velocidad hacia delante (float): el producto escalar del vector `forward` con la velocidad lineal del cuerpo `b`.", ["b2Dot(forward, b->GetLinearVelocity())", "b2Dot(b->GetLinearVelocity(), forward)"],
+        "Positivo: avanza. Negativo: marcha atrás.", { ph: "b2Dot(..." }),
+      test("Quieres que el coche deje de girar como una peonza tras un choque. ¿Qué usas?", ["SetLinearDamping", "SetAngularDamping", "ApplyTorque", "SetBullet"], 1, "El damping angular frena el giro poco a poco."),
+      huecos("Lleva el coche a la parrilla sin velocidad.", String.raw`b->▢(b2Vec2(PIXEL_TO_METERS(x), PIXEL_TO_METERS(y)), angle);
+b->SetLinearVelocity(▢);
+b->SetAngularVelocity(0.0f);
+b->▢(true);`, ["SetTransform", "b2Vec2_zero", "SetAwake", "SetPosition", "ApplyForce", "nullptr"], ["SetTransform", "b2Vec2_zero", "SetAwake"],
+        "SetAwake: un cuerpo dormido teletransportado podría quedarse quieto. SetTransform es para teletransportes puntuales, no cada frame."),
+      bug("El coche atraviesa los muros. ¿Qué línea es la culpable?", [
+        "void Car::Update()",
+        "{",
+        "    b2Vec2 p = body->body->GetPosition();",
+        "    p += speed * PHYSICS_DT * GetForward();",
+        "    body->body->SetTransform(p, body->body->GetAngle());",
+        "}"], 4, "Mover con SetTransform cada frame es teletransportar: Box2D no resuelve los choques. Mueve con fuerzas, impulsos o SetLinearVelocity."),
+      test("¿Debes multiplicar por `dt` la velocidad que le pasas a `SetLinearVelocity`?", ["Sí, siempre", "No: ya está en m/s y Box2D integra con su paso fijo", "Solo a 30 fps", "Solo en vista cenital"], 1, "dt solo para lo tuyo (timers, animaciones)."),
+      test("Quieres que el coche gire a 3 rad/s. ¿Qué es más directo y predecible para un arcade?", ["ApplyTorque(3)", "SetAngularVelocity(3.0f)", "SetTransform con el ángulo + 3", "ApplyForce lateral"], 1, "SetAngularVelocity fija el giro; ApplyTorque da un tacto más “pesado” que depende de la inercia."),
+      escribe("Escribe el impulso (b2Vec2) que hace que un cuerpo de masa `m` gane 4 m/s hacia la derecha.", ["b2Vec2(4 * m, 0)", "b2Vec2(m * 4, 0)", "b2Vec2(4.0f * m, 0.0f)", "b2Vec2(m*4.0f,0.0f)", "m * b2Vec2(4, 0)", "m*b2Vec2(4.0f,0.0f)"],
+        "Impulso = masa × cambio de velocidad.", { ph: "b2Vec2(..." }),
+      orden("Mueve en horizontal conservando la velocidad vertical (side-view, A/D).", [
+        "b2Vec2 v = b->GetLinearVelocity();",
+        "v.x = 0.0f;",
+        "if (IsKeyDown(KEY_A)) v.x = -speed;",
+        "if (IsKeyDown(KEY_D)) v.x = speed;",
+        "b->SetLinearVelocity(v);"], "Se lee primero para no pisar la Y (gravedad, salto)."),
+      test("¿Para qué sirve `SetBullet(true)` (o `bodyDef.bullet = true`)?", ["Para disparar", "Detección continua de colisiones entre cuerpos dinámicos rápidos (evita que se atraviesen)", "Para que no rote", "Para hacerlo sensor"], 1, "Para coches muy rápidos chocando entre sí."),
+      test("`b->GetLocalPoint(goal)` devuelve (2, -5). Si el morro es (0, -1), el objetivo está…", ["detrás a la izquierda", "delante a la derecha", "justo detrás", "a la izquierda"], 1, "x > 0: a la derecha; y < 0: delante. Es la base de la IA.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "colisiones", titulo: "Colisiones, sensores y ray casts", icono: "⟷",
+    desc: "b2ContactListener, userData, OnCollision, sensores, el mundo bloqueado, PreSolve/PostSolve, TestPoint y RayCast.",
+    chuleta: [
+      ["El camino de un choque", "1) ModulePhysics hereda de `b2ContactListener` y hace `world->SetContactListener(this)`.\n2) Al crear cada cuerpo: `def.userData.pointer = reinterpret_cast<uintptr_t>(pbody);` (antes de CreateBody).\n3) En BeginContact recuperas los PhysBody y llamas a `listener->OnCollision(a, b)`.\n```void ModulePhysics::BeginContact(b2Contact* contact)\n{\n    PhysBody* a = (PhysBody*)contact->GetFixtureA()->GetBody()->GetUserData().pointer;\n    PhysBody* b = (PhysBody*)contact->GetFixtureB()->GetBody()->GetUserData().pointer;\n    if (a && a->listener) a->listener->OnCollision(a, b);\n    if (b && b->listener) b->listener->OnCollision(b, a);\n}```"],
+      ["Regla de oro", "Durante el Step el mundo está bloqueado: en OnCollision no crees ni destruyas cuerpos ni los teletransportes. Anótalo (en una lista o un bool) y hazlo en Update. Cambiar variables (vueltas, puntos) sí se puede."],
+      ["Sensores", "`fixture.isSensor = true;`: detecta (BeginContact/EndContact) pero no empuja. Meta, checkpoints, turbos, aceite."],
+      ["Otros callbacks", "`PreSolve`: antes de resolver (`contact->SetEnabled(false)` para atravesar). `PostSolve`: después, con la fuerza del golpe (`impulse->normalImpulses[0]`) → volumen del sonido de choque."]
+    ],
+    preguntas: [
+      test("¿Qué hay que hacer para que Box2D te avise de los choques?", ["Nada, avisa solo", "Heredar de b2ContactListener y registrarlo con world->SetContactListener", "Llamar a TestPoint cada frame", "Usar un joint"], 1, "", { nuevo: true }),
+      huecos("Haz que ModulePhysics sea el listener de contactos.", String.raw`class ModulePhysics : public Module, public ▢
+{
+    void ▢(b2Contact* contact) override;
+};
+// en Start:
+world->SetContactListener(▢);`, ["b2ContactListener", "BeginContact", "this", "OnCollision", "world", "b2Contact"], ["b2ContactListener", "BeginContact", "this"],
+        "Herencia múltiple: Module y el listener. Se registra pasando el propio módulo."),
+      test("¿Para qué se guarda el PhysBody en `userData.pointer`?", ["Para dibujar", "Para pasar del b2Body (de Box2D) a tu PhysBody en BeginContact", "Para el filtro", "Por obligación"], 1, "Box2D solo te da sus fixtures y bodies; el userData es tu enlace de vuelta."),
+      escribe("Escribe la línea que guarda `pbody` en el userData de la definición `def` (Box2D 2.4).", ["def.userData.pointer = reinterpret_cast<uintptr_t>(pbody)", "def.userData.pointer=(uintptr_t)pbody"],
+        "Siempre antes de `CreateBody(&def)`.", { ph: "def.userData.pointer = ..." }),
+      bug("En BeginContact el userData siempre es 0. ¿Qué línea está en mal sitio?", [
+        "b2BodyDef def;",
+        "def.type = b2_dynamicBody;",
+        "b2Body* b = world->CreateBody(&def);",
+        "def.userData.pointer = reinterpret_cast<uintptr_t>(pbody);"], 3, "Después de CreateBody, modificar la def ya no afecta al cuerpo. Va antes. (Alternativa: `b->GetUserData().pointer = ...`)."),
+      orden("Ordena BeginContact.", [
+        "void ModulePhysics::BeginContact(b2Contact* contact)",
+        "{",
+        "    PhysBody* a = (PhysBody*)contact->GetFixtureA()->GetBody()->GetUserData().pointer;",
+        "    PhysBody* b = (PhysBody*)contact->GetFixtureB()->GetBody()->GetUserData().pointer;",
+        "    if (a && a->listener) a->listener->OnCollision(a, b);",
+        "    if (b && b->listener) b->listener->OnCollision(b, a);",
+        "}"], "Cada cuerpo recibe primero a sí mismo: en OnCollision, `bodyA` es siempre “el mío”."),
+      test("En OnCollision del jugador, ¿qué es `bodyB`?", ["El jugador", "El otro cuerpo con el que ha chocado", "El suelo siempre", "nullptr"], 1, "bodyA = el que tiene este listener; bodyB = el otro."),
+      test("El coche toca una moneda y quieres eliminarla. ¿Dónde llamas a DestroyBody?", ["En OnCollision", "En BeginContact", "La apuntas en OnCollision y la destruyes en Update", "En el destructor del coche"], 2, "El mundo está bloqueado durante el Step.", { nuevo: true }),
+      bug("Al tocar el turbo, el juego a veces crashea. ¿Qué línea es peligrosa?", [
+        "void ModuleGame::OnCollision(PhysBody* a, PhysBody* b)",
+        "{",
+        "    if (a == boost_pad)",
+        "    {",
+        "        App->physics->DestroyBody(boost_pad);",
+        "        boost_pad = nullptr;",
+        "    }",
+        "}"], 4, "Destruir un cuerpo dentro del callback, en mitad del Step. Apúntalo (`to_destroy.push_back(a)`) y destrúyelo en Update."),
+      test("¿Cuántas veces llega cada contacto a tu OnCollision si los dos cuerpos tienen listener?", ["1", "2: (A, B) y (B, A)", "3", "Depende"], 1, "Por eso, al apuntar algo en una lista, comprueba que no esté ya."),
+      huecos("Apunta el cuerpo para destruirlo sin repetirlo.", String.raw`if (std::find(to_destroy.begin(), to_destroy.end(), bodyB) ▢ to_destroy.end())
+    to_destroy.▢(bodyB);`, ["==", "push_back", "!=", "erase", "insert"], ["==", "push_back"], "std::find devuelve end() si no lo encuentra."),
+      test("¿Qué hace una fixture con `isSensor = true`?", ["Choca más fuerte", "Detecta solapes (Begin/EndContact) pero no empuja", "No detecta nada", "Es invisible en debug"], 1, "Meta, checkpoints, turbos, aceite, zonas de muerte."),
+      test("¿Puedes cambiar `car->lap++` dentro de OnCollision?", ["No, nunca", "Sí: cambiar variables está bien; lo prohibido es crear/destruir/teletransportar cuerpos", "Solo con un mutex", "Solo en PostSolve"], 1, ""),
+      test("¿Para qué sirve `PreSolve`?", ["Para dibujar", "Para decidir justo antes de resolver un contacto, por ejemplo desactivarlo con contact->SetEnabled(false)", "Para crear cuerpos", "Para el raycast"], 1, "Plataformas de un solo sentido, fantasmas temporales…", { nuevo: true }),
+      test("Quieres que el sonido del choque suene más fuerte cuanto más fuerte es el golpe. ¿Qué callback?", ["BeginContact", "EndContact", "PreSolve", "PostSolve (lee impulse->normalImpulses[0])"], 3, "PostSolve recibe los impulsos que aplicó el solver."),
+      huecos("¿El punto `p` (en metros) está dentro de alguna fixture del cuerpo?", String.raw`for (b2Fixture* f = body->GetFixtureList(); f; f = f->▢())
+{
+    if (f->GetShape()->TestPoint(body->▢(), p))
+        return true;
+}`, ["GetNext", "GetTransform", "GetPosition", "GetBody", "GetAngle"], ["GetNext", "GetTransform"], "La forma está en coordenadas locales: hay que pasarle la transformación (posición + ángulo) del cuerpo."),
+      test("Un ray cast de 200 px devuelve `fraction = 0.3`. ¿A qué distancia está el impacto?", ["30 px", "60 px", "0,3 m", "200 px"], 1, "fracción × longitud del rayo."),
+      test("¿Por qué el RayCast del handout recorre `GetChildCount()` de cada forma?", ["Por estilo", "Una cadena tiene un hijo por cada segmento y hay que probarlos todos", "Para los círculos", "No hace falta"], 1, "Sin ese bucle, el rayo solo vería el primer segmento del muro."),
+      escribe("Escribe la condición de un if que comprueba que `a` no es nulo y tiene `listener`.", ["a != nullptr && a->listener != nullptr", "a && a->listener", "a != NULL && a->listener != NULL", "a!=nullptr&&a->listener"],
+        "El orden importa: si `a` es nulo, `&&` no evalúa la segunda parte (no crashea).", { ph: "a ..." })
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "filtrado", titulo: "Filtrado de colisiones", icono: "& |",
+    desc: "categoryBits, maskBits y groupIndex: quién choca con quién. Cambiar filtros en pleno juego.",
+    chuleta: [
+      ["La regla", "Dos fixtures chocan si `(catA & maskB) != 0 && (catB & maskA) != 0`. Por defecto cat = 0x0001 y mask = 0xFFFF (choca con todo)."],
+      ["En código", "```enum Category : uint16 { CAT_WALL = 1 << 0, CAT_CAR = 1 << 1, CAT_SENSOR = 1 << 2 };\n\nfixture.filter.categoryBits = CAT_CAR;\nfixture.filter.maskBits = CAT_WALL | CAT_CAR | CAT_SENSOR;\nfixture.filter.groupIndex = 0;```"],
+      ["groupIndex", "Mismo grupo positivo: siempre chocan. Mismo grupo negativo: nunca chocan (gana a las máscaras). 0: deciden categoría y máscara."],
+      ["En pleno juego", "```b2Filter f = fixture->GetFilterData();\nf.maskBits = CAT_WALL | CAT_SENSOR;   // fantasma: atraviesa coches\nfixture->SetFilterData(f);```"]
+    ],
+    preguntas: [
+      test("¿Qué significa `categoryBits`?", ["Con qué choco", "Qué soy", "Mi grupo", "Mi densidad"], 1, "Un bit que identifica el tipo de la fixture.", { nuevo: true }),
+      test("¿Qué significa `maskBits`?", ["Qué soy", "Con qué categorías choco", "Mi color", "Mi peso"], 1, "Puede tener varios bits a la vez."),
+      test("A: cat 0x0002, mask 0x0001. B: cat 0x0002, mask 0xFFFF. ¿Chocan?", ["Sí", "No", "Depende del grupo 0", "Solo si son sensores"], 1, "catB & maskA = 0x0002 & 0x0001 = 0 → A no acepta a B."),
+      huecos("Define las categorías del juego.", String.raw`enum Category : uint16
+{
+    CAT_WALL   = 1 << ▢,
+    CAT_CAR    = 1 << ▢,
+    CAT_SENSOR = 1 << ▢
+};`, ["0", "1", "2", "3", "4"], ["0", "1", "2"], "Un bit cada una: 1, 2, 4."),
+      escribe("Escribe la máscara de un coche que choca con muros, coches y sensores (categorías CAT_WALL, CAT_CAR, CAT_SENSOR).", [/^(CAT_(WALL|CAR|SENSOR)\|){2}CAT_(WALL|CAR|SENSOR)$/],
+        "Se combinan con OR de bits: `CAT_WALL | CAT_CAR | CAT_SENSOR`.", { ph: "CAT_WALL | ..." }),
+      huecos("Aplica el filtro a la fixture del coche antes de crearla.", String.raw`fixture.filter.▢ = CAT_CAR;
+fixture.filter.▢ = CAT_WALL | CAT_CAR | CAT_SENSOR;
+b->CreateFixture(&fixture);`, ["categoryBits", "maskBits", "groupIndex", "isSensor", "density"], ["categoryBits", "maskBits"], ""),
+      test("Dos coches con `groupIndex = -1`…", ["chocan siempre", "nunca chocan entre ellos, digan lo que digan sus máscaras", "solo chocan con muros", "no chocan con nada"], 1, "Mismo grupo negativo = nunca. Útil para coches fantasma (contrarreloj contra tu mejor vuelta)."),
+      test("¿Cuánto vale `CAT_WALL | CAT_SENSOR` si CAT_WALL = 1 y CAT_SENSOR = 4?", ["4", "5", "1", "0"], 1, "001 | 100 = 101 = 5."),
+      orden("Haz que el coche atraviese a los demás coches durante 2 s al reaparecer.", [
+        "b2Fixture* f = body->GetFixtureList();",
+        "b2Filter filter = f->GetFilterData();",
+        "filter.maskBits = CAT_WALL | CAT_SENSOR;",
+        "f->SetFilterData(filter);",
+        "ghost_timer.Start();"], "Se lee, se modifica y se vuelve a poner. Al pasar 2 s, otra vez con CAT_CAR en la máscara."),
+      bug("Tras este cambio el coche atraviesa también los muros. ¿Qué línea falla?", [
+        "b2Filter filter = f->GetFilterData();",
+        "filter.maskBits = CAT_SENSOR;",
+        "f->SetFilterData(filter);"], 1, "Al quitar CAT_CAR también has quitado CAT_WALL. Debe ser `CAT_WALL | CAT_SENSOR`."),
+      test("Los checkpoints (sensores) no deben interactuar con nada salvo coches. ¿Su máscara?", ["0xFFFF", "CAT_CAR", "CAT_WALL", "0"], 1, "Así no gastan cálculos con los muros ni entre ellos."),
+      test("Con máscara 0, una fixture…", ["choca con todo", "no choca ni detecta nada", "solo detecta sensores", "es estática"], 1, ""),
+      test("¿Qué tipo de datos son categoryBits y maskBits en Box2D 2.4?", ["int", "uint16 (16 bits sin signo)", "float", "bool"], 1, "Por eso hay como mucho 16 categorías."),
+      test("Para reglas que no caben en bits (por ejemplo, “un coche no choca con su propia bala”), ¿qué usas?", ["Más categorías", "Una clase que herede de b2ContactFilter con ShouldCollide, registrada con world->SetContactFilter", "Un joint", "No se puede"], 1, "", { nuevo: true })
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "joints", titulo: "Joints y el mouse joint (F1)", icono: "⚙",
+    desc: "Revolute, prismatic, distance, weld, friction y el mouse joint de depuración que pide el proyecto.",
+    chuleta: [
+      ["Mouse joint", "```b2MouseJointDef def;\ndef.bodyA = ground;                // estático vacío\ndef.bodyB = body_clicked;\ndef.target = mouse_position;       // metros\ndef.maxForce = 100.0f * body_clicked->GetMass();\nb2LinearStiffness(def.stiffness, def.damping, 5.0f, 0.7f, def.bodyA, def.bodyB);\nmouse_joint = (b2MouseJoint*)world->CreateJoint(&def);\n// cada frame: mouse_joint->SetTarget(mouse_position);\n// al soltar: world->DestroyJoint(mouse_joint); mouse_joint = nullptr;```"],
+      ["Revolute (bisagra)", "```b2RevoluteJointDef jd;\njd.Initialize(bodyA, bodyB, anchor);\njd.enableLimit = true; jd.lowerAngle = -0.5f * b2_pi; jd.upperAngle = 0.25f * b2_pi;\njd.enableMotor = true; jd.maxMotorTorque = 10.0f; jd.motorSpeed = 2.0f;   // rad/s```"],
+      ["Destruir", "Al destruir un body, Box2D destruye sus joints. Si guardabas un puntero a uno, ponlo a nullptr."]
+    ],
+    preguntas: [
+      test("¿Qué es un joint?", ["Una forma", "Una restricción entre dos cuerpos (o uno y el mundo)", "Un sensor", "Un tipo de cuerpo"], 1, "Bisagras, muelles, pistones, ruedas…", { nuevo: true }),
+      test("¿Qué joint para una barrera que gira sin parar en el circuito?", ["Distance", "Revolute con motor", "Prismatic", "Weld"], 1, "Revolute anclado a ground con enableMotor y motorSpeed."),
+      test("¿Qué joint para una puerta que sube y baja por un carril?", ["Revolute", "Prismatic", "Pulley", "Friction"], 1, "Se desliza en un eje, con límites y motor."),
+      test("¿Qué joint para frenar un objeto contra el “suelo” en vista cenital?", ["Weld", "Friction joint con ground", "Mouse", "Gear"], 1, "Reduce el movimiento relativo hasta una fuerza máxima: fricción cenital sin programarla a mano."),
+      test("¿Qué es `bodyA` en el mouse joint del handout?", ["El cuerpo clicado", "`ground`: un cuerpo estático sin fixtures", "El ratón", "nullptr"], 1, ""),
+      orden("Crea el mouse joint cuando has pinchado un cuerpo.", [
+        "b2MouseJointDef def;",
+        "def.bodyA = ground;",
+        "def.bodyB = body_clicked;",
+        "def.target = mouse_position;",
+        "def.maxForce = 100.0f * body_clicked->GetMass();",
+        "b2LinearStiffness(def.stiffness, def.damping, 5.0f, 0.7f, def.bodyA, def.bodyB);",
+        "mouse_joint = (b2MouseJoint*)world->CreateJoint(&def);"], "Es el TODO 2 de la Lesson 4."),
+      huecos("Mientras mantienes el ratón, el joint sigue al cursor; al soltar se destruye.", String.raw`if (mouse_joint != nullptr && IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+    mouse_joint->▢(mouse_position);
+
+if (mouse_joint != nullptr && ▢(MOUSE_BUTTON_LEFT))
+{
+    world->▢(mouse_joint);
+    mouse_joint = nullptr;
+}`, ["SetTarget", "IsMouseButtonReleased", "DestroyJoint", "IsMouseButtonPressed", "DestroyBody", "SetPosition"], ["SetTarget", "IsMouseButtonReleased", "DestroyJoint"], ""),
+      bug("Arrastras con F1 una moneda que se destruye al tocar el coche y el juego crashea. ¿Qué línea falta proteger?", [
+        "void ModulePhysics::DestroyBody(PhysBody* pbody)",
+        "{",
+        "    world->DestroyBody(pbody->body);",
+        "    delete pbody;",
+        "}"], 2, "Antes de destruir: `if (mouse_joint && mouse_joint->GetBodyB() == pbody->body) mouse_joint = nullptr;` — Box2D destruye el joint con el cuerpo y tu puntero queda colgando."),
+      test("¿Por qué `maxForce = 100 * masa`?", ["Por estética", "Para que se arrastre igual de bien un cuerpo ligero que uno pesado", "Obligatorio", "Para que no se mueva"], 1, ""),
+      escribe("Escribe el límite superior de un revolute para 90 grados, usando b2_pi.", [/^0\.5f?\*b2_pi$/, /^b2_pi\*0\.5f?$/, /^b2_pi\/2(\.0f?)?$/],
+        "Los ángulos de Box2D van en radianes: 90° = π/2.", { ph: "... * b2_pi" }),
+      huecos("Una barrera giratoria con motor.", String.raw`b2RevoluteJointDef jd;
+jd.Initialize(ground, barrier, barrier->GetWorldCenter());
+jd.▢ = true;
+jd.maxMotorTorque = 500.0f;
+jd.▢ = 1.5f;   // rad/s
+world->CreateJoint(&jd);`, ["enableMotor", "motorSpeed", "enableLimit", "upperAngle", "maxForce"], ["enableMotor", "motorSpeed"], "La barrera debe ser dinámica para que el motor la mueva."),
+      test("Un distance joint con `dampingRatio = 0`…", ["no oscila", "oscila para siempre (muelle sin freno)", "es rígido", "se rompe"], 1, "0 = sin amortiguar, 1 = no oscila."),
+      test("¿Qué joint sustituye al Rope joint en Box2D 2.4?", ["Distance con maxLength", "Prismatic", "Weld", "Wheel"], 0, ""),
+      test("Al destruir un body con joints, ¿qué pasa con los joints?", ["Siguen", "Box2D los destruye también", "Error", "Pasan al ground"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "friccion", titulo: "Fricción a medida (vista cenital)", icono: "μ",
+    desc: "Por qué Box2D no frena tu coche desde arriba, fuerza normal, fricción estática y dinámica, y ApplyFriction.",
+    chuleta: [
+      ["Fórmulas", "Normal: `N = m · g` (g = GRAVITY_Z = 9,8).\nEstática (parado): aguanta mientras `|F| ≤ μs · N`.\nDinámica (deslizando): `f = μk · N` en contra de la velocidad.\nArrastre (aire/rodadura): `f = -k · v`."],
+      ["ApplyFriction (resumen)", "```float N = b->GetMass() * GRAVITY_Z;\nb2Vec2 v = b->GetLinearVelocity();\nif (v.Length() < 0.01f && applied.Length() <= us * N) { b->ApplyForceToCenter(-applied, true); return; }\nb2Vec2 dir = (v.Length() < 0.01f) ? applied : v;\ndir.Normalize();\nb2Vec2 f = -uk * N * dir;\nb2Vec2 next = v + (PHYSICS_DT / b->GetMass()) * (applied + f);\nif (b2Dot(next, dir) <= 0) { b->SetLinearVelocity(b2Vec2_zero); b->ApplyForceToCenter(-applied, true); return; }\nb->ApplyForceToCenter(f, true);```"]
+    ],
+    preguntas: [
+      test("¿Por qué la `friction` de las fixtures no frena a tu coche contra el asfalto en vista cenital?", ["Porque vale 0", "Porque solo actúa entre dos fixtures que se tocan, y el suelo no es un cuerpo", "Por la gravedad", "Sí lo frena"], 1, "Hay que aplicar la fricción a mano como una fuerza.", { nuevo: true }),
+      escribe("Escribe la fuerza normal `N` de un cuerpo `b` con la macro `GRAVITY_Z`.", ["b->GetMass() * GRAVITY_Z", "GRAVITY_Z * b->GetMass()"], "N = m · g.", { ph: "b->GetMass() ..." }),
+      test("Empujas con 50 N. μs = 0,5 y g = 10. ¿Desde qué masa la bola no se mueve?", ["5 kg", "10 kg", "25 kg", "100 kg"], 1, "50 ≤ 0,5 · m · 10 → m ≥ 10 kg."),
+      test("¿Hacia dónde apunta la fricción dinámica?", ["Hacia la fuerza aplicada", "En contra de la velocidad", "Hacia abajo", "Hacia el centro"], 1, ""),
+      huecos("La fricción dinámica.", String.raw`b2Vec2 dir = velocity;
+dir.▢();
+b2Vec2 friction = ▢ * normal * dir;
+b->ApplyForceToCenter(friction, true);`, ["Normalize", "-dynamic_friction", "dynamic_friction", "Length", "static_friction"], ["Normalize", "-dynamic_friction"], "Dirección unitaria del movimiento, con el signo menos para ir en contra."),
+      test("¿Qué evita la comprobación `b2Dot(next_velocity, direction) <= 0`?", ["La división por cero", "Que la fricción haga que el cuerpo tiemble alrededor de cero (empujándolo hacia atrás)", "El tunneling", "Nada"], 1, "La fricción frena, nunca empuja hacia atrás: si el próximo paso invertiría el sentido, se para en seco."),
+      test("Un coche de 2 kg con motor de 30 N y arrastre `-3·v`. ¿Velocidad punta?", ["5 m/s", "10 m/s", "15 m/s", "30 m/s"], 1, "Se equilibra cuando 30 = 3 · v → v = 10 m/s.", { nuevo: true }),
+      huecos("Arrastre proporcional a la velocidad hacia delante.", String.raw`float speed = b2Dot(forward, b->GetLinearVelocity());
+b->ApplyForceToCenter(▢ * drag * speed * forward, true);`, ["-1.0f", "1.0f", "0.0f", "speed"], ["-1.0f"], "En contra de la marcha. Hace que el coche frene suave al soltar y nunca vibre."),
+      test("Quieres que el coche frene más en la hierba. ¿Qué cambias?", ["La masa", "El coeficiente de fricción/arrastre de ese coche mientras está en un sensor de hierba", "La gravedad", "El Step"], 1, "Guarda los coeficientes por coche, no globales."),
+      orden("Bucle del juego para una bola empujada con fricción (Handout 05).", [
+        "for (Ball* ball : balls)",
+        "{",
+        "    b2Vec2 force(Ball::push_force, 0.0f);",
+        "    ball->body->body->ApplyForceToCenter(force, true);",
+        "    App->physics->ApplyFriction(ball->body, force);",
+        "}"], "Primero la fuerza, luego la fricción (que necesita saber la fuerza aplicada para el caso estático)."),
+      test("Un coche que gira sigue girando para siempre en vista cenital. ¿Solución sencilla?", ["Más masa", "SetAngularDamping (fricción angular)", "Más fricción lineal", "Un sensor"], 1, ""),
+      bug("La bola tiembla en vez de pararse. ¿Qué línea causa el problema?", [
+        "b2Vec2 friction = -dynamic_friction * normal * direction;",
+        "b->ApplyForceToCenter(friction, true);",
+        "// (no hay más código)"], 1, "Se aplica la fricción sin comprobar si invertiría el sentido. Falta la comprobación con `b2Dot(next_velocity, direction) <= 0` antes."),
+      test("¿Qué es `mass = density × area` útil para?", ["Calcular la densidad necesaria para que una bola pese lo que tú quieres", "Calcular la velocidad", "El rozamiento", "Nada"], 0, "Box2D no deja fijar la masa directamente: despejas la densidad. `density = mass / (b2_pi * r * r)`.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "coche", titulo: "La física del coche", icono: "🏎",
+    desc: "Vectores del coche, velocidad lateral, agarre con impulsos, derrape, motor, freno, dirección, freno de mano, nitro y superficies.",
+    chuleta: [
+      ["El modelo", "```b2Vec2 Car::GetForward() const { return body->body->GetWorldVector(b2Vec2(0.0f, -1.0f)); }\nb2Vec2 Car::GetRight() const   { return body->body->GetWorldVector(b2Vec2(1.0f, 0.0f)); }\nb2Vec2 Car::GetLateralVelocity() const { b2Vec2 r = GetRight(); return b2Dot(r, body->body->GetLinearVelocity()) * r; }\nfloat Car::GetForwardSpeed() const { return b2Dot(GetForward(), body->body->GetLinearVelocity()); }```"],
+      ["Agarre y derrape", "```b2Vec2 impulse = b->GetMass() * -GetLateralVelocity();\nfloat max = b->GetMass() * max_lateral_dv;\nif (handbrake) max *= 0.25f;\nif (impulse.Length() > max) { impulse *= max / impulse.Length(); drifting = true; } else drifting = false;\nb->ApplyLinearImpulse(impulse, b->GetWorldCenter(), true);```"],
+      ["Motor y dirección", "```// motor\nif (throttle > 0 && speed < max_speed) b->ApplyForceToCenter(engine_accel * b->GetMass() * GetForward(), true);\n// dirección: parado no gira; marcha atrás al revés\nfloat factor = fminf(fabsf(speed) / 2.5f, 1.0f);\nif (speed < 0) factor = -factor;\nif (steer != 0) b->SetAngularVelocity(steer * turn_speed * factor);```"]
+    ],
+    preguntas: [
+      test("Una caja empujada hacia su morro y girada sigue deslizándose en la dirección vieja. ¿Qué falta?", ["Más motor", "Cancelar la velocidad lateral (agarre de los neumáticos)", "Gravedad", "Un joint"], 1, "Un neumático rueda fácil hacia delante y casi no se deja mover de lado.", { nuevo: true }),
+      escribe("Escribe el vector forward del coche si su textura mira hacia arriba (cuerpo `b`).", ["b->GetWorldVector(b2Vec2(0.0f, -1.0f))", "b->GetWorldVector(b2Vec2(0,-1))", "b->GetWorldVector(b2Vec2(0.0f,-1))"], "En pantalla la Y crece hacia abajo: arriba es -1.", { ph: "b->GetWorldVector(..." }),
+      huecos("Velocidad lateral del coche.", String.raw`b2Vec2 right = GetRight();
+return ▢(right, body->body->GetLinearVelocity()) * ▢;`, ["b2Dot", "right", "b2Cross", "forward", "Length"], ["b2Dot", "right"], "Proyección: (right · v) · right."),
+      test("v = (4, 3) y right = (0, 1). ¿Rapidez lateral?", ["4", "3", "5", "7"], 1, "b2Dot((0,1), (4,3)) = 3."),
+      huecos("El impulso que anula la velocidad lateral.", String.raw`b2Vec2 impulse = b->▢() * -GetLateralVelocity();
+b->ApplyLinearImpulse(impulse, b->▢(), true);`, ["GetMass", "GetWorldCenter", "GetInertia", "GetPosition", "GetLocalCenter"], ["GetMass", "GetWorldCenter"], "Impulso = masa × cambio de velocidad, aplicado en el centro de masas."),
+      test("¿Qué produce el derrape en este modelo?", ["Bajar la masa", "Limitar el impulso lateral máximo: si hace falta más, queda velocidad lateral", "Subir la gravedad", "El damping"], 1, ""),
+      orden("Ordena el agarre con derrape.", [
+        "b2Vec2 impulse = b->GetMass() * -GetLateralVelocity();",
+        "float max_impulse = b->GetMass() * max_lateral_dv;",
+        "if (handbrake) max_impulse *= 0.25f;",
+        "if (impulse.Length() > max_impulse) impulse *= max_impulse / impulse.Length();",
+        "b->ApplyLinearImpulse(impulse, b->GetWorldCenter(), true);"], "Calcular, limitar (menos con freno de mano), aplicar."),
+      test("¿Por qué se usa un impulso y no una fuerza para el agarre?", ["Es más barato", "Para cambiar la velocidad lateral ya, en este paso", "Box2D no deja fuerzas laterales", "Da igual"], 1, ""),
+      huecos("El motor solo empuja hasta la velocidad máxima.", String.raw`float speed = GetForwardSpeed();
+if (throttle > 0.0f ▢ speed ▢ max_speed)
+    b->ApplyForceToCenter(engine_force * GetForward(), true);`, ["&&", "<", "||", ">", "=="], ["&&", "<"], ""),
+      test("El jugador pulsa frenar yendo hacia delante a 6 m/s. ¿Qué debería pasar?", ["Marcha atrás suave", "Freno fuerte (fuerza hacia atrás grande) hasta casi pararse; después marcha atrás suave", "Nada", "Se para en seco"], 1, "`accel = (speed > 0.5f) ? -brake_accel : -reverse_accel;`"),
+      bug("El coche gira estando parado. ¿Qué línea hay que cambiar?", [
+        "void Car::Steer(float steer)",
+        "{",
+        "    if (steer != 0.0f)",
+        "        b->SetAngularVelocity(steer * turn_speed);",
+        "}"], 3, "Falta escalar por la velocidad: `steer * turn_speed * factor`, con factor = min(|speed| / 2.5, 1) y negativo marcha atrás."),
+      escribe("Escribe el factor de giro (float) que vale 0 parado y 1 a partir de 2.5 m/s, usando `speed`, `fabsf` y `fminf`.", [/^fminf\(fabsf\(speed\)\/2\.5f?,1(\.0f?)?\)$/, /^fminf\(1(\.0f?)?,fabsf\(speed\)\/2\.5f?\)$/],
+        "`fminf(fabsf(speed) / 2.5f, 1.0f)`. Luego, si speed < 0, se invierte.", { ph: "fminf(..." }),
+      test("Marcha atrás, el volante debe…", ["funcionar igual", "funcionar al revés (como en un coche real)", "bloquearse", "girar el doble"], 1, "Por eso el factor se hace negativo si la velocidad frontal es negativa."),
+      test("¿Cómo implementas el freno de mano (acción extra con espacio)?", ["Subiendo la masa", "Reduciendo mucho el impulso lateral máximo mientras se pulsa: el coche derrapa", "Parando el coche", "Con un joint"], 1, "`handbrake = IsKeyDown(KEY_SPACE);` y `if (handbrake) max_impulse *= 0.25f;`"),
+      orden("Nitro: un segundo de turbo con 5 segundos de recarga.", [
+        "if (!nitro_ready && nitro_timer.ReadSec() >= 5.0) nitro_ready = true;",
+        "if (IsKeyPressed(KEY_SPACE) && nitro_ready)",
+        "{",
+        "    boost_time = 1.0f;",
+        "    nitro_ready = false;",
+        "    nitro_timer.Start();",
+        "}"], "En Drive: `if (boost_time > 0) { boost_time -= PHYSICS_DT; accel += boost_accel; }`."),
+      test("El coche pasa por una mancha de aceite. ¿Qué cambias mientras está dentro?", ["La masa", "Bajas mucho el impulso lateral máximo (patina)", "La gravedad", "Lo destruyes"], 1, "Con un contador in_oil (Begin +1, End -1) y `if (in_oil > 0) max_impulse *= 0.15f;`"),
+      test("¿En qué orden se llaman en Car::Update?", ["Draw, Drive, Steer", "Control (input/IA) → UpdateFriction → Drive → Steer", "Steer, Draw, Control", "Da igual"], 1, "Decidir, quitar lo lateral, empujar y girar."),
+      test("¿Por qué el motor multiplica por la masa (`engine_accel * mass`)?", ["Por obligación", "Así el valor es una aceleración y el coche se siente igual aunque cambies su tamaño", "Para que pese más", "No hace falta nunca"], 1, "F = m · a."),
+      bug("El coche sale disparado a velocidad absurda a 144 fps y lento a 30. ¿Qué línea?", [
+        "float accel = engine_accel;",
+        "if (throttle > 0.0f)",
+        "    b->ApplyForceToCenter(accel * b->GetMass() * GetForward() * GetFrameTime() * 60.0f, true);"], 2, "No mezcles el tiempo del frame con las fuerzas: Box2D integra con su paso fijo. La fuerza va sin dt. (Y la física debe ir a 60 Hz fijos: SetTargetFPS(60) o acumulador)."),
+      test("¿Qué indica `drifting = true`?", ["Que el coche está parado", "Que el impulso lateral se ha recortado: el coche derrapa", "Que va marcha atrás", "Que está en el aire"], 1, "Úsalo para el sonido de derrape y las marcas de neumáticos.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "carrera", titulo: "La carrera: checkpoints, vueltas y tiempos", icono: "🏁",
+    desc: "Checkpoints en orden con %, vueltas, mejor vuelta, estados de carrera, reaparecer, zonas especiales y posiciones con std::sort.",
+    chuleta: [
+      ["Vuelta válida", "```if (index != car->next_checkpoint) return;          // fuera de orden: no cuenta\ncar->next_checkpoint = (index + 1) % CHECKPOINT_COUNT;\nif (index == 0) car->LapCompleted();                 // meta en orden```"],
+      ["LapCompleted", "```double t = lap_timer.ReadSec();\nif (best_lap < 0.0 || t < best_lap) best_lap = t;   // -1 = aún no hay\nlap++;\nlap_timer.Start();\nif (lap >= LAPS_TO_WIN) finished = true;```"],
+      ["Ordenar por posición", "```std::sort(order.begin(), order.end(), [this](Car* a, Car* b) { return Progress(a) > Progress(b); });```"]
+    ],
+    preguntas: [
+      test("¿Por qué no basta con un sensor en la meta para contar vueltas?", ["Sí basta", "Se podría cruzar, dar la vuelta y volver a cruzar: hacen falta checkpoints en orden", "Los sensores no detectan coches", "Por rendimiento"], 1, "", { nuevo: true }),
+      test("6 checkpoints (0 a 5). Un coche toca el 5, que era el suyo. ¿Nuevo next_checkpoint?", ["6", "0", "5", "1"], 1, "(5 + 1) % 6 = 0: la meta."),
+      huecos("La regla de la vuelta en OnCollision.", String.raw`if (index ▢ car->next_checkpoint)
+    return;
+car->next_checkpoint = (index + 1) ▢ CHECKPOINT_COUNT;
+if (index == ▢)
+    car->LapCompleted();`, ["!=", "%", "0", "==", "/", "1"], ["!=", "%", "0"], ""),
+      test("¿Con qué valor empieza next_checkpoint si el coche sale justo detrás de la meta?", ["0", "1", "-1", "CHECKPOINT_COUNT"], 0, "Si sale detrás de la meta, lo primero que cruza es la meta (0)... pero entonces contaría una vuelta nada más salir. Por eso lo habitual es salir *delante* de la meta con next = 1, o detrás con next = 0 y no contar la primera. Decide uno y sé coherente."),
+      orden("LapCompleted con mejor vuelta.", [
+        "double t = lap_timer.ReadSec();",
+        "if (best_lap < 0.0 || t < best_lap) best_lap = t;",
+        "lap++;",
+        "lap_timer.Start();",
+        "if (lap >= LAPS_TO_WIN) finished = true;"], "Leer el tiempo antes de reiniciar el timer."),
+      bug("El mejor tiempo siempre es 0. ¿Qué línea falla?", [
+        "lap_timer.Start();",
+        "double t = lap_timer.ReadSec();",
+        "if (best_lap < 0.0 || t < best_lap) best_lap = t;",
+        "lap++;"], 0, "Se reinicia el timer antes de leerlo: t vale ~0. Primero ReadSec, luego Start."),
+      test("¿Dónde guardas el “mejor tiempo de la sesión” para que no se borre al reiniciar la carrera?", ["En el coche (Reset lo borra)", "En ModuleGame, y StartRace no lo toca", "En un #define", "En Box2D"], 1, ""),
+      test("¿Por qué el turbo no aplica el impulso directamente en OnCollision?", ["Porque no hay coche", "Durante el Step el mundo está bloqueado: se apunta boost_time y la fuerza se aplica en Update", "Porque es un sensor", "Por estética"], 1, ""),
+      escribe("Escribe la línea que, al entrar en un sensor de aceite, incrementa el contador `in_oil` del coche `car`.", ["car->in_oil++", "++car->in_oil", "car->in_oil += 1"], "Y en OnCollisionEnd, `car->in_oil--`.", { ph: "car->..." }),
+      test("¿Por qué un contador para el aceite y no un bool?", ["Ocupa menos", "Si hay sensores solapados, salir de uno no significa haber salido del aceite", "Box2D lo exige", "Por velocidad"], 1, ""),
+      huecos("Formato del HUD.", String.raw`DrawText(TextFormat("Lap %d/%d", lap + 1, ▢), 20, 20, 30, WHITE);
+DrawText(TextFormat("Time %▢", lap_timer.ReadSec()), 20, 55, 24, WHITE);`, ["LAPS_TO_WIN", ".2f", "d", "s", "lap"], ["LAPS_TO_WIN", ".2f"], "%.2f: decimal con 2 cifras."),
+      test("¿Qué tipo de dato es ideal para el estado de la carrera?", ["Tres bools", "Un enum RaceState con un switch", "Un string", "Un vector"], 1, ""),
+      orden("Reinicia la carrera.", [
+        "for (int i = 0; i < (int)cars.size(); ++i)",
+        "    cars[i]->Reset(grid[i].x, grid[i].y, grid[i].angle);",
+        "state = RACE_COUNTDOWN;",
+        "countdown.Start();"], "Cada coche a su puesto de parrilla, y vuelta a la cuenta atrás. El récord no se toca."),
+      test("¿Qué hace esta lambda en std::sort?", ["Ordena por nombre", "Ordena los coches de más a menos progreso: el primero es el que va primero", "Ordena por velocidad", "Nada"], 1, "Una lambda es una función escrita en el sitio. `[this]` le deja usar Progress del módulo.", { code: String.raw`std::sort(order.begin(), order.end(),
+    [this](Car* a, Car* b) { return Progress(a) > Progress(b); });`, nuevo: true }),
+      escribe("Escribe una expresión de progreso: vueltas `lap` por `CHECKPOINT_COUNT` más los checkpoints pasados `done` (ignora la distancia).", ["lap * CHECKPOINT_COUNT + done", "done + lap * CHECKPOINT_COUNT", "CHECKPOINT_COUNT * lap + done"], "Para desempatar entre dos coches en el mismo tramo, se resta la distancia al siguiente checkpoint dividida por un número grande.", { ph: "lap * ..." }),
+      test("Cuando un coche se sale y quieres devolverlo a la pista, ¿qué usas?", ["ApplyForce enorme", "SetTransform al último checkpoint + velocidades a cero", "Destruirlo y crearlo", "Nada"], 1, "Un teletransporte puntual está bien (fuera del callback)."),
+      test("Los checkpoints son sensores atravesados en la pista. ¿Qué parámetro extra necesita CreateRectangleSensor para las curvas?", ["La masa", "El ángulo", "La fricción", "El color"], 1, "En Box2D 2.4: `def.angle = angle;` en la definición del cuerpo.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "ia", titulo: "IA de los rivales", icono: "AI",
+    desc: "Waypoints, GetLocalPoint + atan2f, control proporcional, frenar en curvas, rayos anti-muro y rubber banding.",
+    chuleta: [
+      ["El cerebro", "```b2Vec2 goal(PIXEL_TO_METERS(wp[target].x), PIXEL_TO_METERS(wp[target].y));\nif ((goal - b->GetPosition()).Length() < 2.2f) target = (target + 1) % WAYPOINT_COUNT;\nb2Vec2 local = b->GetLocalPoint(goal);\nfloat angle = atan2f(local.x, -local.y);   // 0 = recto, + = derecha\nsteer = angle * 2.0f;                      // control proporcional\nif (steer > 1) steer = 1; if (steer < -1) steer = -1;\nthrottle = (fabsf(angle) > 0.6f) ? 0.4f : 1.0f;```"],
+      ["Rubber banding", "```max_speed = base * (Progress(this) > Progress(player) ? 0.92f : 1.08f);```"]
+    ],
+    preguntas: [
+      test("¿Qué es un waypoint?", ["Un tipo de joint", "Un punto de la trazada que la IA sigue en orden", "Un sensor", "Un checkpoint"], 1, "", { nuevo: true }),
+      huecos("Pasar al siguiente waypoint al llegar.", String.raw`if ((goal - b->GetPosition()).▢() < 2.2f)
+    target = (target + 1) ▢ WAYPOINT_COUNT;`, ["Length", "%", "Normalize", "/", "+"], ["Length", "%"], ""),
+      test("¿Qué devuelve `b->GetLocalPoint(goal)`?", ["La distancia", "El objetivo visto desde el coche: x a su derecha, y hacia su cola (−y = delante)", "La posición del coche", "Un ángulo"], 1, ""),
+      test("local = (−3, −4). El objetivo está…", ["delante a la izquierda", "delante a la derecha", "detrás", "justo delante"], 0, "x < 0 izquierda; y < 0 delante."),
+      escribe("Escribe el ángulo hacia el objetivo con atan2f usando `local` (0 = recto, positivo = derecha; el morro es −y).", ["atan2f(local.x, -local.y)"], "atan2(lateral, frontal).", { ph: "atan2f(..." }),
+      test("atan2f(1, 1) en grados vale…", ["0°", "45°", "90°", "135°"], 1, ""),
+      orden("Ordena el Control de AICar.", [
+        "b2Vec2 local = b->GetLocalPoint(goal);",
+        "float angle = atan2f(local.x, -local.y);",
+        "steer = angle * 2.0f;",
+        "if (steer > 1.0f) steer = 1.0f;",
+        "if (steer < -1.0f) steer = -1.0f;",
+        "throttle = (fabsf(angle) > 0.6f) ? 0.4f : 1.0f;"], "Objetivo en local → ángulo → volante proporcional limitado → menos gas en curvas cerradas."),
+      test("El rival hace zigzag en las rectas. ¿Qué ajustas primero?", ["La masa", "Bajar la ganancia (el 2.0f) o apuntar a un waypoint más adelantado", "La gravedad", "El filtro"], 1, "Controlador proporcional demasiado agresivo."),
+      test("El rival se queda orbitando un waypoint sin “llegar” nunca. ¿Causa?", ["El radio de llegada es demasiado pequeño para su velocidad y giro", "Falta un joint", "El waypoint es estático", "La IA es demasiado lista"], 0, ""),
+      huecos("Bigote (rayo) en diagonal izquierda desde el morro.", String.raw`b2Vec2 dir = b->GetWorldVector(b2Vec2(▢, -1.0f));
+dir.Normalize();
+int d = walls->RayCast(x, y, x + (int)(dir.x * 70), y + (int)(dir.y * 70), nx, ny);
+if (d >= 0) steer ▢ 1.5f * (1.0f - d / 70.0f);`, ["-0.5f", "+=", "0.5f", "-=", "*="], ["-0.5f", "+="], "Muro a la izquierda y cerca → gira a la derecha (steer positivo)."),
+      test("¿Qué es el rubber banding?", ["Un joint elástico", "Ajustar la velocidad de los rivales según vayan delante o detrás del jugador", "Un derrape", "Un tipo de sensor"], 1, ""),
+      escribe("Escribe la velocidad máxima del rival: `base` multiplicado por 0.9f si va delante del jugador y por 1.05f si no (usa la condición `ahead`).", [/^base\*\(ahead\?0\.9f?:1\.05f?\)$/, /^\(ahead\?0\.9f?:1\.05f?\)\*base$/, /^max_speed=base\*\(ahead\?0\.9f?:1\.05f?\)$/],
+        "Operador ternario: `condición ? a : b`.", { ph: "base * (..." }),
+      test("¿Qué cambia entre PlayerCar y AICar?", ["Toda la física", "Solo de dónde salen throttle y steer (teclado o IA)", "El tipo de cuerpo", "El filtro"], 1, ""),
+      test("¿Cómo pruebas que la IA se recupera si choca?", ["No se puede", "Con F1, arrastrando el rival con el mouse joint a otro sitio", "Recompilando", "Cambiando el mapa"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "bugs", titulo: "Caza de bugs del proyecto", icono: "🐞",
+    desc: "Los errores típicos de física y C++ que te harán perder horas: encuéntralos en segundos.",
+    chuleta: [
+      ["Síntoma → causa", "Todo cae hacia abajo → gravedad ≠ 0.\nPatina como en hielo → sin agarre lateral.\nNo se para nunca → sin arrastre/fricción.\nTextura desplazada → dibujas desde la esquina.\nGira casi nada → olvidaste RAD2DEG.\nCaja el doble de grande → SetAsBox con medidas enteras.\nCrash al tocar un sensor → DestroyBody en OnCollision.\nCrash con F1 → mouse_joint colgando.\nAtraviesa muros → SetTransform cada frame o cadena al revés.\nFísica más rápida en otro PC → Step por frame sin 60 fps fijos."]
+    ],
+    preguntas: [
+      bug("Todo se va hacia abajo de la pantalla en el juego de carreras.", [
+        "#define GRAVITY_X 0.0f",
+        "#define GRAVITY_Y -10.0f",
+        "world = new b2World(b2Vec2(GRAVITY_X, -GRAVITY_Y));"], 1, "Vista cenital: GRAVITY_Y debe ser 0."),
+      bug("La textura del coche no coincide con su caja de debug.", [
+        "int x, y;",
+        "body->GetPosition(x, y);",
+        "DrawTexture(tex, x, y, WHITE);"], 2, "GetPosition da el centro: dibuja en (x − w/2, y − h/2) o usa DrawTexturePro con origin centrado."),
+      bug("El coche apenas rota en pantalla aunque físicamente gira.", [
+        "Vector2 origin = { tex.width / 2.0f, tex.height / 2.0f };",
+        "DrawTexturePro(tex, src, dst, origin, body->GetRotation(), WHITE);"], 1, "Falta `* RAD2DEG`."),
+      bug("El nitro no hace nada.", [
+        "if (IsKeyPressed(KEY_SPACE))",
+        "    b->ApplyForceToCenter(b2Vec2(0, -50), true);"], 1, "Una fuerza aplicada un solo frame apenas mueve nada (y aquí va siempre hacia arriba de la pantalla, no hacia el morro). Usa un impulso en la dirección forward o un boost_time."),
+      bug("Crash aleatorio al recoger monedas.", [
+        "void ModuleGame::OnCollision(PhysBody* a, PhysBody* b)",
+        "{",
+        "    if (IsCoin(a)) { App->physics->DestroyBody(a); coins++; }",
+        "}"], 2, "DestroyBody dentro del callback. Apunta y destruye en Update."),
+      bug("Los coches atraviesan el muro interior de la pista.", [
+        "walls_outer = App->physics->CreateChain(0, 0, outer, sizeof(outer) / sizeof(int));",
+        "walls_inner = App->physics->CreateChain(0, 0, inner, 4);"], 1, "El tamaño debe ser el número de ints del array: `sizeof(inner) / sizeof(int)`. Con 4 solo hay 2 vértices. (La otra causa típica: vértices en el sentido equivocado)."),
+      bug("La vuelta cuenta dos veces de golpe al cruzar la meta.", [
+        "int index = FindCheckpoint(bodyA);",
+        "if (index == 0) car->LapCompleted();",
+        "car->next_checkpoint = (index + 1) % CHECKPOINT_COUNT;"], 1, "Falta comprobar el orden: `if (index != car->next_checkpoint) return;` antes. Además el contacto puede llegar más de una vez."),
+      bug("El juego va a cámara rápida en un monitor de 144 Hz.", [
+        "update_status ModulePhysics::PreUpdate()",
+        "{",
+        "    world->Step(1.0f / 60.0f, 8, 3);",
+        "    return UPDATE_CONTINUE;",
+        "}"], 2, "Un Step de 1/60 por frame: a 144 fps hay 144 pasos por segundo. Fija `SetTargetFPS(60)` o acumula el tiempo real y da pasos fijos."),
+      bug("El coche gira al revés marcha atrás… pero también hacia delante gira al revés.", [
+        "float factor = fminf(fabsf(speed) / 2.5f, 1.0f);",
+        "if (speed > 0.0f) factor = -factor;",
+        "b->SetAngularVelocity(steer * turn_speed * factor);"], 1, "La condición debe ser `speed < 0.0f`."),
+      bug("Fuga de memoria al reiniciar la carrera varias veces.", [
+        "void ModuleGame::RestartRace()",
+        "{",
+        "    cars.clear();",
+        "    CreateCars();",
+        "}"], 2, "Se pierden los coches anteriores sin borrarlos: antes, para cada uno, DestroyBody + delete."),
+      bug("El segundo sonido cargado nunca suena (y el primero suena cuando pides el segundo).", [
+        "unsigned int LoadFx(const char* path) { fx[fx_count++] = LoadSound(path); return fx_count; }",
+        "bool PlayFx(unsigned int id) { if (id < fx_count) PlaySound(fx[id]); return true; }"], 1, "LoadFx devuelve 1, 2… pero el índice es id − 1: `PlaySound(fx[id - 1])` con `id > 0 && id <= fx_count`. (Fallo real del handout)."),
+      bug("El rival nunca gira a la izquierda.", [
+        "b2Vec2 local = b->GetLocalPoint(goal);",
+        "float angle = atan2f(local.x, -local.y);",
+        "float steer = fabsf(angle) * 2.0f;"], 2, "fabsf quita el signo: el volante siempre es positivo (derecha)."),
+      bug("Tras hacer clic con F1 sobre un muro, el juego crashea.", [
+        "if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && f->TestPoint(mouse_position))",
+        "    body_clicked = b;"], 0, "Falta `b->GetType() == b2_dynamicBody`: un mouse joint sobre un cuerpo estático no tiene sentido (masa 0, maxForce 0)."),
+      bug("El coche fantasma (groupIndex) choca igualmente con los demás.", [
+        "b2Filter f = fixture->GetFilterData();",
+        "f.groupIndex = 1;",
+        "fixture->SetFilterData(f);"], 1, "Mismo grupo POSITIVO = siempre chocan. Para nunca chocar, negativo (-1) en todos los fantasmas."),
+      test("¿Qué herramienta de Visual Studio te lista las fugas al cerrar el juego?", ["El depurador de gráficos", "_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF) al inicio de main", "El profiler de CPU", "Ninguna"], 1, "En Debug, la ventana Salida muestra “Detected memory leaks!” con lo que no se liberó."),
+      test("Cambias un valor en un .h y Visual Studio no parece aplicarlo. ¿Primer paso?", ["Reinstalar", "Recompilar todo (Recompilar solución)", "Borrar Box2D", "Cambiar el PIXELS_PER_METER"], 1, "")
+    ]
+  });
+})();
+
+</script>
+</body>
+</html>

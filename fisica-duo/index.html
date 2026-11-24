@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Box2D Duo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una columna de móvil, como Duolingo. Ruta de unidades -> lección a pantalla completa con
+   barra de progreso arriba y hoja de respuesta abajo. Verde "correcto", rojo "error", ámbar "XP". */
+:root {
+  --bg: #ffffff;
+  --bg-2: #f4f6f2;
+  --card: #ffffff;
+  --ink: #2b2f36;
+  --ink-2: #5b6270;
+  --ink-3: #9aa1ad;
+  --line: #e3e6ea;
+  --green: #58a700;
+  --green-bright: #6bc400;
+  --green-soft: #e8f6d6;
+  --green-shadow: #4a8f00;
+  --red: #e03b3b;
+  --red-soft: #fde7e7;
+  --amber: #e89a00;
+  --blue: #1a8fd6;
+  --blue-soft: #e1f2fc;
+  --code-bg: #1f2430;
+  --code-ink: #e6e8ef;
+  --code-com: #7f88a6;
+  --code-kw: #8fb3ff;
+  --code-ty: #7fd6c2;
+  --code-str: #f2c27b;
+  --code-num: #f59e8b;
+  --code-fn: #d5b8ff;
+  --font: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141820; --bg-2: #1b212b; --card: #1d232e; --ink: #eceff4; --ink-2: #b7bdc8; --ink-3: #7c8492; --line: #2e3644;
+    --green: #7ad11a; --green-bright: #8fe02a; --green-soft: #1f3312; --green-shadow: #5a9c12;
+    --red: #ff6b6b; --red-soft: #3a1c1f; --amber: #ffb627; --blue: #4fb6f5; --blue-soft: #16303f; --code-bg: #0e1118;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141820; --bg-2: #1b212b; --card: #1d232e; --ink: #eceff4; --ink-2: #b7bdc8; --ink-3: #7c8492; --line: #2e3644;
+  --green: #7ad11a; --green-bright: #8fe02a; --green-soft: #1f3312; --green-shadow: #5a9c12;
+  --red: #ff6b6b; --red-soft: #3a1c1f; --amber: #ffb627; --blue: #4fb6f5; --blue-soft: #16303f; --code-bg: #0e1118;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 17px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 50; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.wrap { max-width: 640px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+[hidden] { display: none !important; }
+
+/* ---------- Cabecera ---------- */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 2px solid var(--line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; }
+.brand { font-weight: 900; font-size: 1.15rem; letter-spacing: -.01em; }
+.brand b { color: var(--green); }
+.stats { display: flex; gap: 14px; font-weight: 800; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.stat { display: inline-flex; align-items: center; gap: 5px; }
+.stat i { font-style: normal; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; font-size: .72rem; color: #fff; }
+.stat.racha i { background: var(--amber); }
+.stat.xp i { background: var(--blue); }
+.icon-btn { background: none; border: 2px solid var(--line); border-radius: 12px; padding: 4px 10px; font-weight: 800; cursor: pointer; }
+
+/* ---------- Ruta ---------- */
+.intro { padding-block: 20px 4px; }
+.intro h1 { font-size: 1.6rem; line-height: 1.15; margin: 0 0 6px; font-weight: 900; text-wrap: balance; }
+.intro p { margin: 0; color: var(--ink-2); }
+.repaso { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+.unit { margin: 22px 0; border-radius: 18px; overflow: hidden; border: 2px solid var(--line); background: var(--card); }
+.unit-head { display: flex; gap: 12px; align-items: center; padding: 14px 16px; color: #fff; }
+.unit-badge { flex: none; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: .9rem; background: rgba(255,255,255,.22); }
+.unit-head h2 { margin: 0; font-size: 1.08rem; line-height: 1.2; font-weight: 900; }
+.unit-head p { margin: 2px 0 0; font-size: .85rem; opacity: .92; line-height: 1.3; }
+.unit-body { padding: 14px 16px 16px; display: grid; gap: 12px; }
+.unit-prog { display: flex; align-items: center; gap: 10px; font-size: .82rem; color: var(--ink-2); font-weight: 700; }
+.bar { flex: 1; height: 12px; border-radius: 99px; background: var(--bg-2); overflow: hidden; }
+.bar > span { display: block; height: 100%; width: 0; background: var(--green-bright); border-radius: 99px; transition: width .3s; }
+.nodes { display: flex; flex-wrap: wrap; gap: 10px; }
+.node { width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer; font-weight: 900; font-size: 1.05rem; color: #fff; background: var(--ink-3); box-shadow: 0 5px 0 rgba(0,0,0,.18); }
+.node.done { background: var(--amber); }
+.node.next { background: var(--green-bright); box-shadow: 0 5px 0 var(--green-shadow); }
+.node:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+.unit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Botones ---------- */
+.btn { border: 2px solid var(--line); background: var(--card); border-radius: 14px; padding: 11px 18px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 0 var(--line); text-transform: uppercase; letter-spacing: .03em; font-size: .9rem; }
+.btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--line); }
+.btn.go { background: var(--green-bright); border-color: var(--green-bright); color: #fff; box-shadow: 0 4px 0 var(--green-shadow); }
+.btn.go:disabled { background: var(--line); border-color: var(--line); color: var(--ink-3); box-shadow: 0 4px 0 var(--line); cursor: default; }
+.btn.bad { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 4px 0 #a52626; }
+.btn.small { padding: 7px 12px; font-size: .78rem; }
+.btn.wide { width: 100%; }
+
+/* ---------- Lección ---------- */
+.lesson { position: fixed; inset: 0; background: var(--bg); z-index: 40; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); }
+.lesson-top { display: flex; align-items: center; gap: 12px; padding-block: 12px; }
+.close { background: none; border: none; font-size: 1.6rem; color: var(--ink-3); cursor: pointer; line-height: 1; padding: 4px; }
+.hearts { font-weight: 900; color: var(--red); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lesson-scroll { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+.qtype { font-size: .78rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin: 6px 0 4px; }
+.qtype.nuevo { color: var(--amber); }
+.qtext { font-size: 1.15rem; font-weight: 800; margin: 0 0 14px; line-height: 1.35; overflow-wrap: anywhere; }
+.qtext code, .exp code, .chuleta code { font-family: var(--mono); font-size: .86em; background: var(--bg-2); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; overflow-wrap: anywhere; font-weight: 600; }
+.qtext pre code, .exp pre code, .chuleta pre code, .opt pre code { background: none; border: 0; padding: 0; font-size: inherit; font-weight: 400; overflow-wrap: normal; border-radius: 0; }
+.lesson-top .bar { background: var(--line); }
+pre.code { margin: 0 0 14px; background: var(--code-bg); color: var(--code-ink); border-radius: 12px; padding: 12px 14px; overflow-x: auto; font-family: var(--mono); font-size: .8rem; line-height: 1.55; font-variant-ligatures: none; }
+.t-com { color: var(--code-com); font-style: italic; } .t-kw { color: var(--code-kw); } .t-ty { color: var(--code-ty); }
+.t-str { color: var(--code-str); } .t-num { color: var(--code-num); } .t-fn { color: var(--code-fn); } .t-pp { color: #f08bb4; }
+.blank { display: inline-block; min-width: 3.2em; border-bottom: 2px solid var(--code-com); padding: 0 4px; margin: 0 1px; color: var(--code-str); cursor: pointer; text-align: center; border-radius: 3px; }
+.blank.empty { color: transparent; }
+.blank.current { border-bottom-color: var(--green-bright); background: rgba(107,196,0,.12); }
+.blank.ok { border-bottom-color: var(--green-bright); color: #b6f07a; }
+.blank.ko { border-bottom-color: var(--red); color: #ffb3b3; }
+
+.opts { display: grid; gap: 10px; }
+.opt { text-align: left; border: 2px solid var(--line); background: var(--card); border-radius: 14px; padding: 12px 14px; cursor: pointer; box-shadow: 0 3px 0 var(--line); font-weight: 700; font-size: .98rem; overflow-wrap: anywhere; }
+.opt code { font-family: var(--mono); font-size: .85em; }
+.opt.sel { border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 3px 0 var(--blue); }
+.opt.right { border-color: var(--green); background: var(--green-soft); box-shadow: 0 3px 0 var(--green); }
+.opt.wrong { border-color: var(--red); background: var(--red-soft); box-shadow: 0 3px 0 var(--red); }
+.opt.mono { font-family: var(--mono); font-size: .84rem; font-weight: 600; white-space: pre-wrap; }
+
+.bank { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.chip { border: 2px solid var(--line); background: var(--card); border-radius: 12px; padding: 8px 11px; font-family: var(--mono); font-size: .82rem; font-weight: 600; cursor: pointer; box-shadow: 0 3px 0 var(--line); }
+.chip.used { visibility: hidden; }
+
+.build { min-height: 60px; border: 2px dashed var(--line); border-radius: 14px; padding: 8px; display: grid; gap: 6px; margin-bottom: 12px; }
+.build:empty::before { content: "Toca las líneas en orden para construir el código"; color: var(--ink-3); font-size: .9rem; padding: 8px; }
+.line { text-align: left; border: 2px solid var(--line); background: var(--card); border-radius: 10px; padding: 7px 10px; font-family: var(--mono); font-size: .78rem; font-weight: 600; cursor: pointer; white-space: pre; overflow-x: auto; box-shadow: 0 3px 0 var(--line); }
+.build .line { background: var(--code-bg); color: var(--code-ink); border-color: var(--code-bg); box-shadow: none; }
+.build .line.ok { border-color: var(--green); }
+.build .line.ko { border-color: var(--red); }
+.pool { display: grid; gap: 6px; }
+
+.bugcode { display: grid; gap: 4px; margin-bottom: 14px; background: var(--code-bg); border-radius: 12px; padding: 8px; }
+.bugline { text-align: left; border: 2px solid transparent; background: none; color: var(--code-ink); border-radius: 8px; padding: 4px 8px; font-family: var(--mono); font-size: .78rem; white-space: pre; overflow-x: auto; cursor: pointer; }
+.bugline:hover { background: rgba(255,255,255,.05); }
+.bugline.sel { border-color: var(--blue); background: rgba(79,182,245,.12); }
+.bugline.right { border-color: var(--green-bright); background: rgba(107,196,0,.15); }
+.bugline.wrong { border-color: var(--red); background: rgba(255,107,107,.15); }
+
+.write { width: 100%; font-family: var(--mono); font-size: .9rem; padding: 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg-2); color: var(--ink); resize: vertical; min-height: 70px; }
+.write:focus { outline: none; border-color: var(--blue); }
+.write.right { border-color: var(--green); } .write.wrong { border-color: var(--red); }
+.hint { font-size: .85rem; color: var(--ink-3); margin-top: 6px; }
+
+/* ---------- Hoja de respuesta ---------- */
+.sheet { border-top: 2px solid var(--line); padding-block: 14px calc(14px + env(safe-area-inset-bottom, 0px)); background: var(--bg); }
+.sheet.ok { background: var(--green-soft); border-top-color: transparent; }
+.sheet.ko { background: var(--red-soft); border-top-color: transparent; }
+.verdict { font-weight: 900; font-size: 1.2rem; margin: 0 0 4px; }
+.sheet.ok .verdict { color: var(--green); } .sheet.ko .verdict { color: var(--red); }
+.exp { font-size: .93rem; margin: 0 0 12px; max-height: 34vh; overflow-y: auto; overflow-wrap: anywhere; }
+.exp pre.code { margin: 8px 0 0; }
+
+/* ---------- Fin y chuleta ---------- */
+.done { text-align: center; padding-top: 30px; }
+.done h2 { font-size: 1.8rem; margin: 10px 0; font-weight: 900; }
+.done .big { display: flex; justify-content: center; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
+.done .box { border: 2px solid var(--line); border-radius: 14px; padding: 10px 16px; min-width: 110px; }
+.done .box b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.done .box span { font-size: .75rem; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+.chuleta { padding-block: 10px 30px; }
+.chuleta h3 { margin: 18px 0 6px; font-size: 1.05rem; }
+.chuleta p, .chuleta li { color: var(--ink-2); font-size: .95rem; }
+footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="brand">Box2D<b>Duo</b></span>
+    <div class="stats">
+      <span class="stat racha" title="Racha de días"><i>🔥</i><span id="st-racha">0</span></span>
+      <span class="stat xp" title="Experiencia"><i>XP</i><span id="st-xp">0</span></span>
+      <button type="button" class="icon-btn" id="tema" aria-label="Cambiar tema">◐</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="ruta"></main>
+
+<section class="lesson" id="leccion" hidden></section>
+
+<footer class="wrap">C++ · Box2D 2.4 · Raylib — Physics II, Proyecto 02. El progreso se guarda en este navegador.</footer>
+
+<script>
+/* =====================================================================
+   Motor de la app. Las unidades se registran con DUO.unidad({...}) desde unidades/*.js
+   Tipos de pregunta:
+     test   { p, code?, o:[...], c }                 elegir una
+     huecos { p, code con ▢, bank:[...], a:[...] }    completar con fichas (en orden)
+     orden  { p, lines:[en orden], extra?:[...] }     construir el código tocando líneas
+     escribe{ p, code?, a:[str|RegExp], ph? }         escribir una línea corta
+     bug    { p, lines:[...], c }                     tocar la línea con el error
+   Todas llevan e (explicación). Opcional: nuevo (concepto nuevo, se marca en ámbar)
+   ===================================================================== */
+(function () {
+  "use strict";
+  const unidades = [];
+  const DUO = window.DUO = {
+    unidad(u) { unidades.push(u); },
+    test: (p, o, c, e, x = {}) => Object.assign({ t: "test", p, o, c, e }, x),
+    huecos: (p, code, bank, a, e, x = {}) => Object.assign({ t: "huecos", p, code, bank, a, e }, x),
+    orden: (p, lines, e, x = {}) => Object.assign({ t: "orden", p, lines, e }, x),
+    escribe: (p, a, e, x = {}) => Object.assign({ t: "escribe", p, a, e }, x),
+    bug: (p, lines, c, e, x = {}) => Object.assign({ t: "bug", p, lines, c, e }, x)
+  };
+
+  // ---------- almacenamiento ----------
+  const KEY = "box2dduo.v1";
+  let S = { xp: 0, racha: 0, ultimoDia: "", hechas: {}, falladas: {}, vistas: {} };
+  try { const v = JSON.parse(localStorage.getItem(KEY)); if (v) S = Object.assign(S, v); } catch (e) {}
+  const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  try { const t = localStorage.getItem(KEY + ".tema"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+
+  // ---------- utilidades ----------
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const baraja = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const norm = (s) => String(s).replace(/\/\/[^\n]*/g, "").replace(/\s+/g, "").replace(/;+$/, "");
+  const KW = new Set("if else for while do switch case default break continue return class struct enum public private protected virtual override const static new delete this nullptr NULL true false using namespace template typename auto inline friend operator constexpr sizeof".split(" "));
+  const TY = new Set("int float double bool void char unsigned uint uint16 int16 uint32 int32 uintptr_t size_t std vector list string pair b2World b2Body b2BodyDef b2Fixture b2FixtureDef b2Shape b2CircleShape b2PolygonShape b2ChainShape b2EdgeShape b2Vec2 b2Contact b2ContactListener b2Joint b2MouseJoint b2MouseJointDef b2RevoluteJointDef b2RevoluteJoint b2PrismaticJointDef b2DistanceJointDef b2WeldJointDef b2FrictionJointDef b2RayCastInput b2RayCastOutput b2Filter b2Transform b2Manifold b2ContactImpulse PhysBody PhysicEntity Module ModulePhysics ModuleGame Application update_status Car PlayerCar AICar Checkpoint Timer Texture2D Rectangle Vector2 Color Sound".split(" "));
+  function hl(src) {
+    const re = /(\/\/[^\n]*)|("(?:\\.|[^"\\])*")|(^[ \t]*#\w+[^\n]*)|(\b\d+(?:\.\d+)?f?\b)|([A-Za-z_]\w*)|(▢)/gm;
+    let out = "", last = 0, m;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      const t = m[0];
+      if (m[1]) out += `<span class="t-com">${esc(t)}</span>`;
+      else if (m[2]) out += `<span class="t-str">${esc(t)}</span>`;
+      else if (m[3]) out += `<span class="t-pp">${esc(t)}</span>`;
+      else if (m[4]) out += `<span class="t-num">${t}</span>`;
+      else if (m[6]) out += "▢";
+      else {
+        const next = /^\s*\(/.test(src.slice(re.lastIndex));
+        if (KW.has(t)) out += `<span class="t-kw">${t}</span>`;
+        else if (TY.has(t) || (/^b2[A-Z_]/.test(t) && !next)) out += `<span class="t-ty">${t}</span>`;
+        else if (next) out += `<span class="t-fn">${t}</span>`;
+        else out += t;
+      }
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last));
+  }
+  const codeHTML = (src) => `<pre class="code"><code>${hl(String(src).replace(/^\n/, "").replace(/\s+$/, ""))}</code></pre>`;
+  // texto de pregunta/explicación: `código` -> <code>, bloques ```…``` -> pre
+  function rich(s) {
+    return String(s).split(/```/).map((part, i) => i % 2 ? codeHTML(part) : esc(part).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>")).join("");
+  }
+  const hoy = () => new Date().toISOString().slice(0, 10);
+  const colores = ["#58a700", "#1a8fd6", "#ce6a00", "#8a4fd8", "#d8326e", "#0f9c8c", "#c0392b", "#2f6fd1", "#7a8f00", "#a3489c", "#0b8fb0", "#b35c00", "#4d7c0f", "#5b5bd6", "#b0306a", "#127a6a"];
+  const LPL = 8; // preguntas nuevas por lección
+
+  // ---------- ruta ----------
+  function ruta() {
+    document.getElementById("st-xp").textContent = S.xp;
+    document.getElementById("st-racha").textContent = S.racha;
+    const nFall = Object.keys(S.falladas).length;
+    const total = unidades.reduce((n, u) => n + u.preguntas.length, 0);
+    let html = `<section class="intro"><h1>Programa física de juegos, ejercicio a ejercicio</h1>
+      <p>${total} ejercicios de C++ y Box2D para acabar programando tú solo el juego de carreras. Lecciones de 5 minutos: lee el código, complétalo, ordénalo, encuentra el bug.</p>
+      <div class="repaso">${nFall ? `<button type="button" class="btn go" data-repaso>Repasar mis ${nFall} fallos</button>` : ""}<button type="button" class="btn" data-mezcla>Lección aleatoria</button></div></section>`;
+    unidades.forEach((u, ui) => {
+      const n = Math.ceil(u.preguntas.length / LPL), hechas = S.hechas[u.id] || 0;
+      const col = colores[ui % colores.length];
+      html += `<section class="unit"><div class="unit-head" style="background:${col}"><span class="unit-badge">${esc(u.icono || ui + 1)}</span><div><h2>Unidad ${ui + 1} · ${esc(u.titulo)}</h2><p>${esc(u.desc)}</p></div></div>
+        <div class="unit-body"><div class="unit-prog"><div class="bar"><span style="width:${Math.min(100, 100 * hechas / n)}%"></span></div>${Math.min(hechas, n)}/${n}</div>
+        <div class="nodes">${Array.from({ length: n }, (_, k) => `<button type="button" class="node ${k < hechas ? "done" : k === hechas ? "next" : ""}" data-u="${ui}" data-l="${k}" aria-label="Lección ${k + 1}">${k < hechas ? "✓" : k + 1}</button>`).join("")}</div>
+        <div class="unit-actions">${u.chuleta ? `<button type="button" class="btn small" data-chuleta="${ui}">Chuleta</button>` : ""}<button type="button" class="btn small" data-practica="${ui}">Practicar unidad</button></div></div></section>`;
+    });
+    const r = document.getElementById("ruta");
+    r.innerHTML = html;
+  }
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("button"); if (!t) return;
+    if (t.id === "tema") {
+      const osc = document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = osc ? "light" : "dark";
+      try { localStorage.setItem(KEY + ".tema", document.documentElement.dataset.theme); } catch (er) {}
+      return;
+    }
+    if (t.dataset.u != null && t.classList.contains("node")) {
+      const u = unidades[+t.dataset.u], k = +t.dataset.l;
+      const qs = u.preguntas.slice(k * LPL, k * LPL + LPL).map((q, i) => Object.assign({ _id: u.id + ":" + (k * LPL + i) }, q));
+      // dos de repaso de lecciones anteriores
+      const prev = u.preguntas.slice(0, k * LPL).map((q, i) => Object.assign({ _id: u.id + ":" + i }, q));
+      leccion(qs.concat(baraja(prev).slice(0, 2)), { unidad: u, num: k });
+    }
+    if (t.dataset.practica != null) {
+      const u = unidades[+t.dataset.practica];
+      leccion(baraja(u.preguntas.map((q, i) => Object.assign({ _id: u.id + ":" + i }, q))).slice(0, 10), { unidad: u });
+    }
+    if (t.dataset.repaso != null) {
+      const ids = Object.keys(S.falladas);
+      const qs = baraja(ids).slice(0, 10).map(buscar).filter(Boolean);
+      leccion(qs, { repaso: true });
+    }
+    if (t.dataset.mezcla != null) {
+      const todas = []; unidades.forEach((u) => u.preguntas.forEach((q, i) => todas.push(Object.assign({ _id: u.id + ":" + i }, q))));
+      leccion(baraja(todas).slice(0, 10), {});
+    }
+    if (t.dataset.chuleta != null) chuleta(unidades[+t.dataset.chuleta]);
+  });
+  function buscar(id) {
+    const [uid, i] = id.split(":"); const u = unidades.find((x) => x.id === uid);
+    return u && u.preguntas[+i] ? Object.assign({ _id: id }, u.preguntas[+i]) : null;
+  }
+
+  // ---------- chuleta ----------
+  function chuleta(u) {
+    const L = document.getElementById("leccion"); L.hidden = false;
+    L.innerHTML = `<div class="wrap lesson-top"><button type="button" class="close" id="cerrar" aria-label="Cerrar">✕</button><b>Chuleta · ${esc(u.titulo)}</b></div>
+      <div class="lesson-scroll"><div class="wrap chuleta">${u.chuleta.map((b) => `<h3>${esc(b[0])}</h3>${rich(b[1])}`).join("")}</div></div>`;
+    L.querySelector("#cerrar").onclick = cerrar;
+  }
+  function cerrar() { const L = document.getElementById("leccion"); L.hidden = true; L.innerHTML = ""; document.body.style.overflow = ""; ruta(); }
+
+  // ---------- lección ----------
+  function leccion(cola, ctx) {
+    if (!cola.length) return;
+    const L = document.getElementById("leccion"); L.hidden = false; document.body.style.overflow = "hidden";
+    const total = cola.length;
+    let vidas = 5, aciertos = 0, intentos = 0, hechasOk = 0, xp = 0, actual = null, estado = null;
+    const corregidas = new Set();
+
+    L.innerHTML = `<div class="wrap lesson-top"><button type="button" class="close" id="cerrar" aria-label="Salir">✕</button><div class="bar"><span id="lbar"></span></div><span class="hearts" id="vidas"></span></div>
+      <div class="lesson-scroll"><div class="wrap" id="q"></div></div>
+      <div class="sheet" id="sheet"><div class="wrap"><div id="fb"></div><button type="button" class="btn go wide" id="comprobar" disabled>Comprobar</button></div></div>`;
+    L.querySelector("#cerrar").onclick = cerrar;
+    const Q = L.querySelector("#q"), sheet = L.querySelector("#sheet"), fb = L.querySelector("#fb"), btn = L.querySelector("#comprobar");
+
+    function pinta() {
+      L.querySelector("#lbar").style.width = (100 * corregidas.size / total) + "%";
+      L.querySelector("#vidas").textContent = "♥ " + vidas;
+    }
+    function siguiente() {
+      sheet.className = "sheet"; fb.innerHTML = ""; btn.className = "btn go wide"; btn.textContent = "Comprobar"; btn.disabled = true;
+      if (!cola.length || vidas <= 0) return fin();
+      actual = cola.shift(); estado = render(actual); pinta();
+      L.querySelector(".lesson-scroll").scrollTop = 0;
+    }
+    btn.onclick = () => {
+      if (btn.dataset.fase === "seguir") { btn.dataset.fase = ""; return siguiente(); }
+      const ok = estado.check();
+      intentos++;
+      if (ok) {
+        aciertos++; corregidas.add(actual._id); xp += 10; delete S.falladas[actual._id];
+      } else {
+        vidas--; S.falladas[actual._id] = 1; cola.push(actual);   // vuelve al final, como en Duolingo
+      }
+      S.vistas[actual._id] = 1;
+      sheet.className = "sheet " + (ok ? "ok" : "ko");
+      fb.innerHTML = `<p class="verdict">${ok ? pick(["¡Correcto!", "¡Muy bien!", "¡Exacto!", "¡Eso es!"]) : "No es correcto"}</p>${estado.solucion && !ok ? `<div class="exp"><b>Solución:</b> ${estado.solucion()}</div>` : ""}<div class="exp">${rich(actual.e || "")}</div>`;
+      btn.textContent = "Continuar"; btn.className = "btn wide " + (ok ? "go" : "bad"); btn.disabled = false; btn.dataset.fase = "seguir";
+      pinta(); guardar();
+    };
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+    const listo = (v) => { btn.disabled = !v; };
+
+    function fin() {
+      const aprobado = vidas > 0;
+      if (aprobado && ctx.unidad && ctx.num != null) S.hechas[ctx.unidad.id] = Math.max(S.hechas[ctx.unidad.id] || 0, ctx.num + 1);
+      if (aprobado) {
+        S.xp += xp + 5;
+        const d = hoy();
+        if (S.ultimoDia !== d) {
+          const ayer = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+          S.racha = (S.ultimoDia === ayer) ? S.racha + 1 : 1; S.ultimoDia = d;
+        }
+      }
+      guardar();
+      sheet.hidden = true;
+      const pct = intentos ? Math.round(100 * aciertos / intentos) : 0;
+      Q.innerHTML = `<div class="done"><h2>${aprobado ? "¡Lección completada!" : "Te has quedado sin vidas"}</h2>
+        <p>${aprobado ? "Los ejercicios que fallaste se guardan para el repaso." : "No pasa nada: repite la lección, las preguntas falladas vuelven."}</p>
+        <div class="big"><div class="box"><span>XP</span><b>+${aprobado ? xp + 5 : 0}</b></div><div class="box"><span>Precisión</span><b>${pct}%</b></div><div class="box"><span>Racha</span><b>${S.racha}</b></div></div>
+        <button type="button" class="btn go wide" id="volver">Continuar</button></div>`;
+      Q.querySelector("#volver").onclick = cerrar;
+    }
+
+    // ---------- tipos ----------
+    function render(q) {
+      const etiqueta = { test: "Elige la respuesta", huecos: "Completa el código", orden: "Ordena el código", escribe: "Escríbelo tú", bug: "Encuentra el bug" }[q.t];
+      let h = `<p class="qtype ${q.nuevo ? "nuevo" : ""}">${q.nuevo ? "Concepto nuevo · " : ""}${etiqueta}</p><div class="qtext">${rich(q.p)}</div>`;
+
+      if (q.t === "test") {
+        const orden = baraja(q.o.map((_, i) => i));
+        h += (q.code ? codeHTML(q.code) : "") + `<div class="opts">${orden.map((i) => `<button type="button" class="opt ${/[;(){}=]/.test(q.o[i]) && q.o[i].length < 90 && !/ [a-záéíóúñ]{4,} /.test(q.o[i]) ? "mono" : ""}" data-i="${i}">${rich(q.o[i])}</button>`).join("")}</div>`;
+        Q.innerHTML = h; let sel = -1;
+        Q.querySelectorAll(".opt").forEach((b) => b.onclick = () => { if (btn.dataset.fase) return; sel = +b.dataset.i; Q.querySelectorAll(".opt").forEach((x) => x.classList.toggle("sel", x === b)); listo(true); });
+        return { check() { Q.querySelectorAll(".opt").forEach((x) => { x.classList.remove("sel"); if (+x.dataset.i === q.c) x.classList.add("right"); else if (+x.dataset.i === sel) x.classList.add("wrong"); }); return sel === q.c; } };
+      }
+
+      if (q.t === "huecos") {
+        const partes = String(q.code).replace(/^\n/, "").replace(/\s+$/, "").split("▢");
+        let code = "";
+        partes.forEach((p, i) => { code += hl(p); if (i < partes.length - 1) code += `<span class="blank empty" data-b="${i}">____</span>`; });
+        const fichas = baraja(q.bank.map((t, i) => ({ t, i })));
+        h += `<pre class="code"><code>${code}</code></pre><div class="bank">${fichas.map((f) => `<button type="button" class="chip" data-k="${f.i}">${esc(f.t)}</button>`).join("")}</div>`;
+        Q.innerHTML = h;
+        const huecos = [...Q.querySelectorAll(".blank")], val = huecos.map(() => null);
+        const marca = () => { const k = val.indexOf(null); huecos.forEach((b, i) => b.classList.toggle("current", i === k)); listo(!val.includes(null)); };
+        Q.querySelectorAll(".chip").forEach((c) => c.onclick = () => {
+          if (btn.dataset.fase) return; const k = val.indexOf(null); if (k < 0) return;
+          val[k] = +c.dataset.k; huecos[k].textContent = q.bank[val[k]]; huecos[k].classList.remove("empty"); c.classList.add("used"); marca();
+        });
+        huecos.forEach((b, i) => b.onclick = () => {
+          if (btn.dataset.fase || val[i] == null) return;
+          Q.querySelector(`.chip[data-k="${val[i]}"]`).classList.remove("used"); val[i] = null; b.textContent = "____"; b.classList.add("empty"); marca();
+        });
+        marca();
+        return {
+          check() { let ok = true; huecos.forEach((b, i) => { const bien = q.bank[val[i]] === q.a[i]; b.classList.add(bien ? "ok" : "ko"); b.classList.remove("current"); if (!bien) ok = false; }); return ok; },
+          solucion: () => q.a.map((x) => `<code>${esc(x)}</code>`).join(" · ")
+        };
+      }
+
+      if (q.t === "orden") {
+        const items = baraja(q.lines.map((t, i) => ({ t, i })).concat((q.extra || []).map((t) => ({ t, i: -1 }))));
+        h += (q.extra && q.extra.length ? `<p class="hint">Ojo: sobra${q.extra.length > 1 ? "n " + q.extra.length + " líneas" : " una línea"}.</p>` : "") + `<div class="build" id="build"></div><div class="pool" id="pool">${items.map((it, k) => `<button type="button" class="line" data-k="${k}">${esc(it.t)}</button>`).join("")}</div>`;
+        Q.innerHTML = h;
+        const build = Q.querySelector("#build"), pool = Q.querySelector("#pool"), elegidas = [];
+        const upd = () => listo(elegidas.length >= q.lines.length);
+        pool.querySelectorAll(".line").forEach((b) => b.onclick = () => {
+          if (btn.dataset.fase) return;
+          if (b.parentNode === pool) { build.appendChild(b); elegidas.push(+b.dataset.k); }
+          else { pool.appendChild(b); elegidas.splice(elegidas.indexOf(+b.dataset.k), 1); }
+          upd();
+        });
+        return {
+          check() {
+            let ok = elegidas.length === q.lines.length;
+            [...build.children].forEach((b, pos) => { const it = items[+b.dataset.k]; const bien = it.i === pos || (it.i >= 0 && q.lines[it.i] === q.lines[pos]); b.classList.add(bien ? "ok" : "ko"); if (!bien) ok = false; });
+            return ok;
+          },
+          solucion: () => codeHTML(q.lines.join("\n"))
+        };
+      }
+
+      if (q.t === "escribe") {
+        h += (q.code ? codeHTML(q.code) : "") + `<textarea class="write" id="w" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="${esc(q.ph || "Escribe el código…")}"></textarea><p class="hint">Los espacios dan igual. El punto y coma final es opcional.</p>`;
+        Q.innerHTML = h; const w = Q.querySelector("#w");
+        w.oninput = () => listo(w.value.trim().length > 0);
+        return {
+          check() { const v = norm(w.value); const ok = q.a.some((a) => (a instanceof RegExp ? a.test(v) : v === norm(a))); w.classList.add(ok ? "right" : "wrong"); w.readOnly = true; return ok; },
+          solucion: q.a.some((a) => typeof a === "string") ? () => `<code>${esc(q.a.find((a) => typeof a === "string"))}</code>` : null
+        };
+      }
+
+      if (q.t === "bug") {
+        h += `<div class="bugcode">${q.lines.map((l, i) => `<button type="button" class="bugline" data-i="${i}">${hl(l) || " "}</button>`).join("")}</div>`;
+        Q.innerHTML = h; let sel = -1;
+        Q.querySelectorAll(".bugline").forEach((b) => b.onclick = () => { if (btn.dataset.fase) return; sel = +b.dataset.i; Q.querySelectorAll(".bugline").forEach((x) => x.classList.toggle("sel", x === b)); listo(true); });
+        return { check() { Q.querySelectorAll(".bugline").forEach((x) => { x.classList.remove("sel"); if (+x.dataset.i === q.c) x.classList.add("right"); else if (+x.dataset.i === sel) x.classList.add("wrong"); }); return sel === q.c; } };
+      }
+    }
+    siguiente();
+  }
+
+  window.addEventListener("DOMContentLoaded", ruta);
+})();
+</script>
+<!-- Unidades (en orden) -->
+<script src="unidades/u01_cpp.js"></script>
+<script src="unidades/u02_clases.js"></script>
+<script src="unidades/u03_enums.js"></script>
+<script src="unidades/u04_motor.js"></script>
+<script src="unidades/u05_mundo.js"></script>
+<script src="unidades/u06_formas.js"></script>
+<script src="unidades/u07_mover.js"></script>
+<script src="unidades/u08_colisiones.js"></script>
+<script src="unidades/u09_filtrado.js"></script>
+<script src="unidades/u10_joints.js"></script>
+<script src="unidades/u11_friccion.js"></script>
+<script src="unidades/u12_coche.js"></script>
+<script src="unidades/u13_carrera.js"></script>
+<script src="unidades/u14_ia.js"></script>
+<script src="unidades/u15_bugs.js"></script>
+</body>
+</html>
