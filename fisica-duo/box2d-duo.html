@@ -177,17 +177,35 @@ pre.code { margin: 0 0 14px; background: var(--code-bg); color: var(--code-ink);
 .chuleta h3 { margin: 18px 0 6px; font-size: 1.05rem; }
 .chuleta p, .chuleta li { color: var(--ink-2); font-size: .95rem; }
 footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-align: center; }
+.sync { font-size: .75rem; font-weight: 800; color: var(--ink-3); white-space: nowrap; }
+.sync.ok { color: var(--green); } .sync.err { color: var(--red); }
+.meta { margin-top: 14px; border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; display: grid; gap: 8px; background: var(--card); }
+.meta-row { display: flex; justify-content: space-between; font-weight: 800; font-size: .9rem; gap: 10px; }
+.meta-row span { color: var(--ink-3); font-weight: 700; }
+.meta .bar > span { background: var(--amber); }
+.combo { display: inline-block; margin-left: 8px; font-size: .85rem; color: var(--amber); font-weight: 900; }
+.panel h3 { margin: 22px 0 8px; font-size: 1.05rem; }
+.panel table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.panel td { padding: 7px 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.panel td.n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 800; white-space: nowrap; }
+.panel .mini { width: 70px; height: 8px; }
+.panel textarea { width: 100%; min-height: 90px; font-family: var(--mono); font-size: .75rem; border-radius: 12px; border: 2px solid var(--line); background: var(--bg-2); color: var(--ink); padding: 10px; overflow-wrap: anywhere; }
+.panel .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.panel p { color: var(--ink-2); font-size: .92rem; }
+.kbd { font-size: .78rem; color: var(--ink-3); text-align: center; margin: 14px 0 0; }
+@media (hover: none) { .kbd { display: none; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="wrap">
-    <span class="brand">Box2D<b>Duo</b></span>
+    <span><span class="brand">Box2D<b>Duo</b></span> <span class="sync" id="sync"></span></span>
     <div class="stats">
       <span class="stat racha" title="Racha de días"><i>🔥</i><span id="st-racha">0</span></span>
       <span class="stat xp" title="Experiencia"><i>XP</i><span id="st-xp">0</span></span>
       <button type="button" class="icon-btn" id="tema" aria-label="Cambiar tema">◐</button>
+      <button type="button" class="icon-btn" id="ajustes" aria-label="Progreso y copia de seguridad">☰</button>
     </div>
   </div>
 </header>
@@ -196,7 +214,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 
 <section class="lesson" id="leccion" hidden></section>
 
-<footer class="wrap">C++ · Box2D 2.4 · Raylib — Physics II, Proyecto 02. El progreso se guarda en este navegador.</footer>
+<footer class="wrap">C++ · Box2D 2.4 · Raylib — Physics II, Proyecto 02. El progreso se guarda en tu cuenta (si abres la web en claude.ai) y en este navegador.</footer>
 
 <script>
 /* =====================================================================
@@ -223,9 +241,60 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 
   // ---------- almacenamiento ----------
   const KEY = "box2dduo.v1";
-  let S = { xp: 0, racha: 0, ultimoDia: "", hechas: {}, falladas: {}, vistas: {} };
+  let S = { xp: 0, racha: 0, ultimoDia: "", hechas: {}, falladas: {}, vistas: {}, aciertos: {}, diaXp: { d: "", xp: 0 }, ok: 0, total: 0, t: 0 };
+  const META = 50; // XP diaria
   try { const v = JSON.parse(localStorage.getItem(KEY)); if (v) S = Object.assign(S, v); } catch (e) {}
-  const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  const guardar = () => { S.t = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} nube.programar(); };
+
+  // ---------- guardado en la nube (claude.ai, privado por usuario) ----------
+  // Mezcla: nos quedamos con el máximo de cada progreso, así nunca se pierde nada al usar dos dispositivos.
+  function mezclar(a, b) {
+    const r = Object.assign({}, a);
+    r.xp = Math.max(a.xp || 0, b.xp || 0);
+    r.ok = Math.max(a.ok || 0, b.ok || 0); r.total = Math.max(a.total || 0, b.total || 0);
+    const nueva = (b.t || 0) > (a.t || 0) ? b : a;
+    r.racha = nueva.racha || 0; r.ultimoDia = nueva.ultimoDia || "";
+    r.hechas = Object.assign({}, a.hechas); for (const k in b.hechas || {}) r.hechas[k] = Math.max(r.hechas[k] || 0, b.hechas[k]);
+    r.vistas = Object.assign({}, a.vistas, b.vistas);
+    r.aciertos = Object.assign({}, a.aciertos, b.aciertos);
+    r.falladas = Object.assign({}, nueva.falladas || {});
+    const da = a.diaXp || {}, dbb = b.diaXp || {};
+    r.diaXp = da.d === dbb.d ? { d: da.d, xp: Math.max(da.xp || 0, dbb.xp || 0) } : (da.d > dbb.d ? da : dbb);
+    r.t = Math.max(a.t || 0, b.t || 0);
+    return r;
+  }
+  const nube = (() => {
+    let ref = null, timer = null, escribiendo = false, pendiente = false;
+    const pon = (txt, cls) => { const el = document.getElementById("sync"); if (el) { el.textContent = txt; el.className = "sync " + (cls || ""); } };
+    async function escribe() {
+      if (!ref) return;
+      if (escribiendo) { pendiente = true; return; }
+      escribiendo = true; pon("☁ guardando…");
+      try { await ref.set({ estado: JSON.stringify(S), v: 1 }); pon("☁ guardado", "ok"); }
+      catch (e) { pon("☁ sin guardar", "err"); }
+      escribiendo = false;
+      if (pendiente) { pendiente = false; escribe(); }
+    }
+    async function iniciar() {
+      if (!window.claude || !window.claude.use) return;
+      try {
+        const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+        if (!db || !user) return;
+        const id = await user.id(); if (!id) return;
+        ref = db.doc("data/users/" + id + "/progreso");
+        pon("☁ cargando…");
+        const snap = await ref.get();
+        let remoto = null;
+        if (snap.exists) {
+          try { remoto = JSON.parse(snap.data().estado); } catch (e) {}
+          if (remoto) { S = mezclar(S, remoto); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} if (document.getElementById("leccion").hidden) ruta(); }
+        }
+        pon("☁ guardado", "ok");
+        if (S.t > 0 && (!remoto || JSON.stringify(mezclar(remoto, S)) !== JSON.stringify(remoto))) escribe();
+      } catch (e) { pon("☁ solo local", "err"); ref = null; }
+    }
+    return { iniciar, programar() { if (!ref) return; clearTimeout(timer); timer = setTimeout(escribe, 1200); }, activa: () => !!ref };
+  })();
   try { const t = localStorage.getItem(KEY + ".tema"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
 
   // ---------- utilidades ----------
@@ -265,6 +334,13 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
   const colores = ["#58a700", "#1a8fd6", "#ce6a00", "#8a4fd8", "#d8326e", "#0f9c8c", "#c0392b", "#2f6fd1", "#7a8f00", "#a3489c", "#0b8fb0", "#b35c00", "#4d7c0f", "#5b5bd6", "#b0306a", "#127a6a"];
   const LPL = 8; // preguntas nuevas por lección
 
+  function xpHoy() { return S.diaXp && S.diaXp.d === hoy() ? S.diaXp.xp : 0; }
+  function metaHTML() {
+    const x = xpHoy(), dom = unidades.reduce((n, u) => n + u.preguntas.filter((_, i) => S.aciertos[u.id + ":" + i]).length, 0);
+    const total = unidades.reduce((n, u) => n + u.preguntas.length, 0);
+    return `<div class="meta"><div class="meta-row">Meta diaria <span>${Math.min(x, META)}/${META} XP${x >= META ? " ✓" : ""}</span></div><div class="bar"><span style="width:${Math.min(100, 100 * x / META)}%"></span></div>
+      <div class="meta-row">Ejercicios dominados <span>${dom}/${total}</span></div><div class="bar"><span style="width:${100 * dom / total}%;background:var(--green-bright)"></span></div></div>`;
+  }
   // ---------- ruta ----------
   function ruta() {
     document.getElementById("st-xp").textContent = S.xp;
@@ -273,7 +349,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
     const total = unidades.reduce((n, u) => n + u.preguntas.length, 0);
     let html = `<section class="intro"><h1>Programa física de juegos, ejercicio a ejercicio</h1>
       <p>${total} ejercicios de C++ y Box2D para acabar programando tú solo el juego de carreras. Lecciones de 5 minutos: lee el código, complétalo, ordénalo, encuentra el bug.</p>
-      <div class="repaso">${nFall ? `<button type="button" class="btn go" data-repaso>Repasar mis ${nFall} fallos</button>` : ""}<button type="button" class="btn" data-mezcla>Lección aleatoria</button></div></section>`;
+      ${metaHTML()}<div class="repaso">${nFall ? `<button type="button" class="btn go" data-repaso>Repasar mis ${nFall} fallos</button>` : ""}<button type="button" class="btn" data-mezcla>Lección aleatoria</button></div></section>`;
     unidades.forEach((u, ui) => {
       const n = Math.ceil(u.preguntas.length / LPL), hechas = S.hechas[u.id] || 0;
       const col = colores[ui % colores.length];
@@ -315,10 +391,45 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       leccion(baraja(todas).slice(0, 10), {});
     }
     if (t.dataset.chuleta != null) chuleta(unidades[+t.dataset.chuleta]);
+    if (t.id === "ajustes") panel();
   });
   function buscar(id) {
     const [uid, i] = id.split(":"); const u = unidades.find((x) => x.id === uid);
     return u && u.preguntas[+i] ? Object.assign({ _id: id }, u.preguntas[+i]) : null;
+  }
+
+  // ---------- panel de progreso ----------
+  function panel() {
+    const L = document.getElementById("leccion"); L.hidden = false; document.body.style.overflow = "hidden";
+    const filas = unidades.map((u, ui) => {
+      const n = u.preguntas.length, d = u.preguntas.filter((_, i) => S.aciertos[u.id + ":" + i]).length;
+      return `<tr><td>${ui + 1}. ${esc(u.titulo)}</td><td><div class="bar mini"><span style="width:${100 * d / n}%"></span></div></td><td class="n">${d}/${n}</td></tr>`;
+    }).join("");
+    const prec = S.total ? Math.round(100 * S.ok / S.total) : 0;
+    L.innerHTML = `<div class="wrap lesson-top"><button type="button" class="close" id="cerrar" aria-label="Cerrar">✕</button><b>Tu progreso</b></div>
+      <div class="lesson-scroll"><div class="wrap panel">
+        <div class="done" style="padding-top:0"><div class="big"><div class="box"><span>XP</span><b>${S.xp}</b></div><div class="box"><span>Racha</span><b>${S.racha}</b></div><div class="box"><span>Precisión</span><b>${prec}%</b></div></div></div>
+        <p>${nube.activa() ? "☁ Tu progreso se guarda en tu cuenta de Claude: ábrelo desde el móvil o el PC y continúas donde lo dejaste." : "Tu progreso se guarda en este navegador. Abre la web desde claude.ai para guardarlo en tu cuenta, o usa la copia de seguridad."}</p>
+        <h3>Dominio por unidad</h3><table>${filas}</table>
+        <h3>Copia de seguridad</h3>
+        <p>Copia este código y guárdalo. Para pasar tu progreso a otro dispositivo, pégalo allí y pulsa «Restaurar» (se suma al progreso que ya haya).</p>
+        <textarea id="bk" spellcheck="false">${esc(btoa(unescape(encodeURIComponent(JSON.stringify(S)))))}</textarea>
+        <div class="row"><button type="button" class="btn small" id="bk-copiar">Copiar</button><button type="button" class="btn small go" id="bk-rest">Restaurar</button><button type="button" class="btn small bad" id="bk-reset">Borrar progreso</button></div>
+        <p id="bk-msg"></p>
+      </div></div>`;
+    L.querySelector("#cerrar").onclick = cerrar;
+    const bk = L.querySelector("#bk"), msg = L.querySelector("#bk-msg");
+    L.querySelector("#bk-copiar").onclick = async () => { bk.select(); try { await navigator.clipboard.writeText(bk.value); msg.textContent = "Copiado."; } catch (e) { try { document.execCommand("copy"); msg.textContent = "Copiado."; } catch (e2) { msg.textContent = "Selecciona el texto y cópialo a mano."; } } };
+    L.querySelector("#bk-rest").onclick = () => {
+      try { const o = JSON.parse(decodeURIComponent(escape(atob(bk.value.trim())))); if (typeof o !== "object" || o === null || !("xp" in o)) throw 0; S = mezclar(S, o); guardar(); msg.textContent = "Progreso restaurado."; }
+      catch (e) { msg.textContent = "Ese código no es válido."; }
+    };
+    let conf = false;
+    L.querySelector("#bk-reset").onclick = (e) => {
+      if (!conf) { conf = true; e.target.textContent = "¿Seguro? Pulsa otra vez"; return; }
+      S = { xp: 0, racha: 0, ultimoDia: "", hechas: {}, falladas: {}, vistas: {}, aciertos: {}, diaXp: { d: "", xp: 0 }, ok: 0, total: 0, t: 0 };
+      guardar(); cerrar();
+    };
   }
 
   // ---------- chuleta ----------
@@ -335,12 +446,12 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
     if (!cola.length) return;
     const L = document.getElementById("leccion"); L.hidden = false; document.body.style.overflow = "hidden";
     const total = cola.length;
-    let vidas = 5, aciertos = 0, intentos = 0, hechasOk = 0, xp = 0, actual = null, estado = null;
+    let vidas = 5, aciertos = 0, intentos = 0, hechasOk = 0, xp = 0, actual = null, estado = null, racha = 0, mejorRacha = 0;
     const corregidas = new Set();
 
     L.innerHTML = `<div class="wrap lesson-top"><button type="button" class="close" id="cerrar" aria-label="Salir">✕</button><div class="bar"><span id="lbar"></span></div><span class="hearts" id="vidas"></span></div>
       <div class="lesson-scroll"><div class="wrap" id="q"></div></div>
-      <div class="sheet" id="sheet"><div class="wrap"><div id="fb"></div><button type="button" class="btn go wide" id="comprobar" disabled>Comprobar</button></div></div>`;
+      <div class="sheet" id="sheet"><div class="wrap"><div id="fb"></div><button type="button" class="btn go wide" id="comprobar" disabled>Comprobar</button><p class="kbd">Teclas: 1–9 elegir · Enter comprobar · Esc salir</p></div></div>`;
     L.querySelector("#cerrar").onclick = cerrar;
     const Q = L.querySelector("#q"), sheet = L.querySelector("#sheet"), fb = L.querySelector("#fb"), btn = L.querySelector("#comprobar");
 
@@ -359,13 +470,13 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       const ok = estado.check();
       intentos++;
       if (ok) {
-        aciertos++; corregidas.add(actual._id); xp += 10; delete S.falladas[actual._id];
+        aciertos++; corregidas.add(actual._id); racha++; mejorRacha = Math.max(mejorRacha, racha); xp += 10 + (racha >= 5 ? 5 : racha >= 3 ? 2 : 0); delete S.falladas[actual._id]; S.aciertos[actual._id] = 1; S.ok++;
       } else {
-        vidas--; S.falladas[actual._id] = 1; cola.push(actual);   // vuelve al final, como en Duolingo
+        vidas--; racha = 0; S.falladas[actual._id] = 1; cola.push(actual); try { navigator.vibrate && navigator.vibrate(120); } catch (e) {}   // vuelve al final, como en Duolingo
       }
-      S.vistas[actual._id] = 1;
+      S.vistas[actual._id] = 1; S.total++;
       sheet.className = "sheet " + (ok ? "ok" : "ko");
-      fb.innerHTML = `<p class="verdict">${ok ? pick(["¡Correcto!", "¡Muy bien!", "¡Exacto!", "¡Eso es!"]) : "No es correcto"}</p>${estado.solucion && !ok ? `<div class="exp"><b>Solución:</b> ${estado.solucion()}</div>` : ""}<div class="exp">${rich(actual.e || "")}</div>`;
+      fb.innerHTML = `<p class="verdict">${ok ? pick(["¡Correcto!", "¡Muy bien!", "¡Exacto!", "¡Eso es!"]) : "No es correcto"}${ok && racha >= 3 ? `<span class="combo">🔥 ${racha} seguidas${racha >= 5 ? " · +5 XP" : " · +2 XP"}</span>` : ""}</p>${estado.solucion && !ok ? `<div class="exp"><b>Solución:</b> ${estado.solucion()}</div>` : ""}<div class="exp">${rich(actual.e || "")}</div>`;
       btn.textContent = "Continuar"; btn.className = "btn wide " + (ok ? "go" : "bad"); btn.disabled = false; btn.dataset.fase = "seguir";
       pinta(); guardar();
     };
@@ -377,6 +488,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       if (aprobado && ctx.unidad && ctx.num != null) S.hechas[ctx.unidad.id] = Math.max(S.hechas[ctx.unidad.id] || 0, ctx.num + 1);
       if (aprobado) {
         S.xp += xp + 5;
+        const dd = hoy(); if (!S.diaXp || S.diaXp.d !== dd) S.diaXp = { d: dd, xp: 0 }; S.diaXp.xp += xp + 5;
         const d = hoy();
         if (S.ultimoDia !== d) {
           const ayer = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
@@ -388,7 +500,8 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       const pct = intentos ? Math.round(100 * aciertos / intentos) : 0;
       Q.innerHTML = `<div class="done"><h2>${aprobado ? "¡Lección completada!" : "Te has quedado sin vidas"}</h2>
         <p>${aprobado ? "Los ejercicios que fallaste se guardan para el repaso." : "No pasa nada: repite la lección, las preguntas falladas vuelven."}</p>
-        <div class="big"><div class="box"><span>XP</span><b>+${aprobado ? xp + 5 : 0}</b></div><div class="box"><span>Precisión</span><b>${pct}%</b></div><div class="box"><span>Racha</span><b>${S.racha}</b></div></div>
+        <div class="big"><div class="box"><span>XP</span><b>+${aprobado ? xp + 5 : 0}</b></div><div class="box"><span>Precisión</span><b>${pct}%</b></div><div class="box"><span>Seguidas</span><b>${mejorRacha}</b></div><div class="box"><span>Racha días</span><b>${S.racha}</b></div></div>
+        ${aprobado ? `<p>Meta diaria: <b>${Math.min(xpHoy(), META)}/${META} XP</b>${xpHoy() >= META ? " ✓ ¡cumplida!" : ""}</p>` : ""}
         <button type="button" class="btn go wide" id="volver">Continuar</button></div>`;
       Q.querySelector("#volver").onclick = cerrar;
     }
@@ -472,7 +585,19 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
     siguiente();
   }
 
-  window.addEventListener("DOMContentLoaded", ruta);
+  document.addEventListener("keydown", (e) => {
+    const L = document.getElementById("leccion"); if (L.hidden) return;
+    if (e.key === "Escape") { const c = L.querySelector("#cerrar"); if (c) c.click(); return; }
+    const enTexto = e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT");
+    if (e.key === "Enter" && (!enTexto || !e.shiftKey)) {
+      const b = L.querySelector("#comprobar, #volver"); if (b && !b.disabled && L.querySelector("#q")) { e.preventDefault(); b.click(); } return;
+    }
+    if (enTexto) return;
+    const n = parseInt(e.key, 10); if (!(n >= 1 && n <= 9)) return;
+    const opts = L.querySelectorAll("#q .opt, #q .bugline, #q .chip:not(.used), #q #pool .line");
+    if (opts[n - 1]) opts[n - 1].click();
+  });
+  window.addEventListener("DOMContentLoaded", () => { ruta(); nube.iniciar(); });
 })();
 </script>
 <!-- Unidades (en orden) -->
@@ -1401,6 +1526,305 @@ if (d >= 0) steer ▢ 1.5f * (1.0f - d / 70.0f);`, ["-0.5f", "+=", "0.5f", "-=",
         "fixture->SetFilterData(f);"], 1, "Mismo grupo POSITIVO = siempre chocan. Para nunca chocar, negativo (-1) en todos los fantasmas."),
       test("¿Qué herramienta de Visual Studio te lista las fugas al cerrar el juego?", ["El depurador de gráficos", "_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF) al inicio de main", "El profiler de CPU", "Ninguna"], 1, "En Debug, la ventana Salida muestra “Detected memory leaks!” con lo que no se liberó."),
       test("Cambias un valor en un .h y Visual Studio no parece aplicarlo. ¿Primer paso?", ["Reinstalar", "Recompilar todo (Recompilar solución)", "Borrar Box2D", "Cambiar el PIXELS_PER_METER"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "stl", titulo: "STL: vector, map, iteradores y lambdas", icono: "{}",
+    desc: "Recorrer y borrar sin romper nada, std::map, auto, referencias en el for, find_if, sort, remove_if y punteros inteligentes.",
+    chuleta: [
+      ["Borrar mientras recorres", "```for (auto it = coins.begin(); it != coins.end(); )\n{\n    if ((*it)->picked) { delete *it; it = coins.erase(it); }   // erase devuelve el siguiente\n    else ++it;\n}```"],
+      ["Erase–remove con lambda", "```bullets.erase(std::remove_if(bullets.begin(), bullets.end(),\n    [](const Bullet& b) { return b.dead; }), bullets.end());```"],
+      ["std::map", "```std::map<std::string, Texture2D> textures;\ntextures[\"car\"] = LoadTexture(\"car.png\");\nauto it = textures.find(\"car\");\nif (it != textures.end()) DrawTexture(it->second, 0, 0, WHITE);```"],
+      ["Lambdas", "`[captura](parámetros) { cuerpo }`. `[]` nada, `[this]` el objeto, `[&]` todo por referencia, `[=]` todo por copia."]
+    ],
+    preguntas: [
+      test("¿Qué pasa con este bucle?", ["Funciona", "Comportamiento indefinido: tras erase, `it` queda inválido y luego se hace ++it", "No compila", "Borra todo"], 1, "erase invalida el iterador borrado. Usa `it = v.erase(it);` y solo haz ++it cuando no borras.", { code: String.raw`for (auto it = v.begin(); it != v.end(); ++it)
+    if (*it == 0) v.erase(it);`, nuevo: true }),
+      huecos("Borra las monedas recogidas sin romper el iterador.", String.raw`for (auto it = coins.begin(); it != coins.end(); )
+{
+    if ((*it)->picked) { delete *it; it = coins.▢(it); }
+    else ▢it;
+}`, ["erase", "++", "remove", "--", "insert"], ["erase", "++"], "erase devuelve un iterador al siguiente elemento."),
+      test("¿Qué hace `for (auto car : cars)` si `cars` es `std::vector<Car>` (objetos, no punteros)?", ["Recorre referencias", "Copia cada coche: los cambios no se guardan en el vector", "No compila", "Recorre al revés"], 1, "Usa `for (auto& car : cars)` para modificar, o `const auto&` para leer sin copiar."),
+      escribe("Escribe la cabecera de un for por rango que recorra `cars` por referencia constante (nombre de variable `car`).", [/^for\(constauto&car:cars\)\{?$/, /^for\(autoconst&car:cars\)\{?$/, /^for\(constCar&car:cars\)\{?$/], "`for (const auto& car : cars)`: sin copias y sin poder modificar.", { ph: "for (..." }),
+      test("Con `std::vector<Car*> cars;`, ¿qué hace `cars.clear()`?", ["Libera los coches", "Vacía el vector pero NO hace delete de los coches (fuga)", "Destruye los cuerpos de Box2D", "Nada"], 1, "El vector solo guarda punteros. Haz delete de cada uno antes."),
+      huecos("Busca el primer coche que haya terminado.", String.raw`auto it = std::▢(cars.begin(), cars.end(),
+    [](Car* c) { return c->finished; });
+if (it ▢ cars.end()) winner = *it;`, ["find_if", "!=", "sort", "==", "count"], ["find_if", "!="], "find_if devuelve end() si no encuentra nada."),
+      orden("Erase–remove: quita las balas muertas.", [
+        "bullets.erase(",
+        "    std::remove_if(bullets.begin(), bullets.end(),",
+        "        [](const Bullet& b) { return b.dead; }),",
+        "    bullets.end());"], "remove_if mueve las buenas al principio y devuelve dónde empieza la basura; erase la corta."),
+      test("¿Qué captura `[this]` en una lambda dentro de un método?", ["Nada", "El puntero al objeto: la lambda puede usar sus miembros y métodos", "Una copia del objeto", "Las variables locales"], 1, ""),
+      test("¿Y `[&]`?", ["Todas las variables locales usadas, por referencia", "Solo this", "Todo por copia", "Nada"], 0, "Cuidado: si la lambda se guarda y se usa después, esas referencias pueden quedar colgando."),
+      escribe("Escribe la lambda (sin `;`) que compara dos `Car*` a y b por `best_lap` de menor a mayor.", [/^\[\]\(Car\*a,Car\*b\)\{returna->best_lap<b->best_lap;?\}$/, /^\[\]\(constCar\*a,constCar\*b\)\{returna->best_lap<b->best_lap;?\}$/], "`[](Car* a, Car* b) { return a->best_lap < b->best_lap; }`", { ph: "[](Car* a, Car* b) { ... }" }),
+      test("¿Qué devuelve `textures[\"nitro\"]` en un std::map si la clave no existe?", ["Lanza un error", "Crea un elemento nuevo con valor por defecto y lo devuelve", "nullptr", "end()"], 1, "Para solo consultar sin crear, usa `find` o `count`."),
+      huecos("Consulta segura en un map.", String.raw`auto it = sounds.▢("crash");
+if (it != sounds.end())
+    PlaySound(it->▢);`, ["find", "second", "first", "at", "value"], ["find", "second"], "first es la clave, second el valor."),
+      test("¿Qué diferencia hay entre `push_back(Car(1,2))` y `emplace_back(1, 2)`?", ["Ninguna", "emplace_back construye el objeto directamente dentro del vector (sin copia temporal)", "push_back es más rápido", "emplace_back no existe"], 1, ""),
+      bug("Crash al disparar mucho. ¿Qué línea es peligrosa?", [
+        "Bullet* first = &bullets[0];",
+        "bullets.push_back(Bullet());",
+        "first->x += 1.0f;"], 2, "push_back puede realocar el vector: los punteros/referencias anteriores a sus elementos quedan colgando. Guarda índices o usa `std::vector<Bullet*>`."),
+      test("¿Qué ventaja tiene `std::unique_ptr<Car>` frente a `Car*`?", ["Es más rápido", "Hace delete automáticamente cuando el puntero se destruye: no hay fugas", "Permite copias", "Ninguna"], 1, "`auto car = std::make_unique<Car>();` Ojo: no se puede copiar, solo mover."),
+      escribe("Escribe cómo creas un `std::unique_ptr<Car>` llamado `car` con make_unique (sin argumentos).", ["auto car = std::make_unique<Car>()", "std::unique_ptr<Car> car = std::make_unique<Car>()"], "", { ph: "auto car = ..." }),
+      test("`std::vector<int> v(5);` ¿Qué contiene?", ["Un 5", "Cinco ceros", "Nada", "Basura"], 1, "Con paréntesis: tamaño. Con llaves `v{5}`: un solo elemento con valor 5."),
+      test("¿Por qué `for (int i = 0; i < v.size() - 1; ++i)` revienta con un vector vacío?", ["No revienta", "size() es unsigned: 0 - 1 da un número enorme", "Porque i empieza en 0", "Por el ++i"], 1, "Usa `i + 1 < v.size()` o castea a int.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "estados2", titulo: "Máquinas de estados de verdad", icono: "⇄",
+    desc: "Transiciones con Enter/Exit, temporizadores por estado, estados de jugador y de pantalla, el patrón State con clases y una pila para la pausa.",
+    chuleta: [
+      ["Enum + ChangeState", "```enum class GameState { TITLE, COUNTDOWN, RACING, PAUSED, RESULTS };\n\nvoid ChangeState(GameState next)\n{\n    OnExit(state);          // limpia el estado viejo\n    state = next;\n    state_timer.Start();    // cada estado cuenta su tiempo\n    OnEnter(state);         // prepara el nuevo\n}```"],
+      ["Patrón State", "```class State {\npublic:\n    virtual ~State() {}\n    virtual void Enter() {}\n    virtual State* Update(float dt) = 0;   // devuelve el siguiente (o this)\n    virtual void Exit() {}\n};```"],
+      ["Reglas", "Una sola variable de estado (no cinco bools).\nCambia de estado SOLO con ChangeState.\nLo que se hace una vez → Enter. Lo de cada frame → Update.\nEl input se lee según el estado."]
+    ],
+    preguntas: [
+      test("Tienes `bool racing, paused, finished, countdown;`. ¿Qué problema tiene?", ["Ninguno", "Pueden darse combinaciones imposibles (racing y finished a la vez)", "Ocupa mucha memoria", "No compila"], 1, "Un enum garantiza que solo hay un estado activo.", { nuevo: true }),
+      huecos("La función que cambia de estado.", String.raw`void ModuleGame::ChangeState(GameState next)
+{
+    ▢(state);
+    state = ▢;
+    state_timer.Start();
+    OnEnter(state);
+}`, ["OnExit", "next", "OnEnter", "state", "Update"], ["OnExit", "next"], "Salir del viejo, cambiar, reiniciar el temporizador, entrar en el nuevo."),
+      test("¿Dónde pones `PlayMusicStream(race_music)`?", ["En el Update de RACING (cada frame)", "En OnEnter de RACING", "En el constructor", "En Draw"], 1, "Lo que ocurre una vez al entrar va en Enter. Cada frame la reiniciaría."),
+      orden("Update de la cuenta atrás: 3 segundos y a correr.", [
+        "case GameState::COUNTDOWN:",
+        "    if (state_timer.ReadSec() >= 3.0)",
+        "        ChangeState(GameState::RACING);",
+        "    break;"], ""),
+      escribe("Escribe el número que se muestra en la cuenta atrás (3, 2, 1) como int, usando `state_timer.ReadSec()`.", [/^3-\(int\)state_timer\.ReadSec\(\)$/, /^3-static_cast<int>\(state_timer\.ReadSec\(\)\)$/], "`3 - (int)state_timer.ReadSec()` → 3, 2, 1 durante cada segundo.", { ph: "3 - ..." }),
+      bug("Al pausar, el cronómetro de vuelta sigue contando. ¿Qué falta?", [
+        "case GameState::RACING:",
+        "    if (IsKeyPressed(KEY_P)) ChangeState(GameState::PAUSED);",
+        "    break;",
+        "case GameState::PAUSED:",
+        "    if (IsKeyPressed(KEY_P)) ChangeState(GameState::RACING);",
+        "    break;"], 1, "El Timer cuenta tiempo real. Al entrar en PAUSED guarda lo transcurrido (o para los timers) y al volver réstalo. Además: no hagas world->Step mientras estás en PAUSED."),
+      test("¿Qué no debe ocurrir en PAUSED?", ["Dibujar", "world->Step y el input de conducción", "Leer la tecla P", "Mostrar el menú"], 1, ""),
+      huecos("Estado del jugador en un plataformas.", String.raw`enum class PlayerState { IDLE, RUN, JUMP, FALL };
+...
+if (!on_ground)
+    state = (vel.y < 0) ? PlayerState::▢ : PlayerState::▢;
+else
+    state = (fabsf(vel.x) > 0.1f) ? PlayerState::RUN : PlayerState::IDLE;`, ["JUMP", "FALL", "RUN", "IDLE"], ["JUMP", "FALL"], "En pantalla la Y crece hacia abajo: subir es vel.y negativa."),
+      test("¿Para qué sirve el estado del jugador además de la lógica?", ["Para nada", "Para elegir la animación (cada estado tiene la suya)", "Para la gravedad", "Para el filtrado"], 1, ""),
+      test("Patrón State: ¿qué devuelve `Update` en este diseño?", ["void", "Un puntero al siguiente estado (this si no cambia)", "Un bool", "Un int"], 1, "", { code: String.raw`class State {
+public:
+    virtual ~State() {}
+    virtual void Enter() {}
+    virtual State* Update(float dt) = 0;
+    virtual void Exit() {}
+};` }),
+      orden("El bucle que usa el patrón State.", [
+        "State* next = current->Update(dt);",
+        "if (next != current)",
+        "{",
+        "    current->Exit();",
+        "    delete current;",
+        "    current = next;",
+        "    current->Enter();",
+        "}"], "Ojo: borras el viejo DESPUÉS de llamar a Exit."),
+      test("¿Por qué State necesita destructor virtual?", ["Por estilo", "Porque se borra con `delete current;` a través de un `State*`: sin virtual no se llama al destructor de la clase hija", "Para que compile", "No lo necesita"], 1, ""),
+      test("Quieres que el menú de pausa se dibuje ENCIMA de la carrera congelada. ¿Qué estructura ayuda?", ["Un bool", "Una pila de estados: solo se actualiza el de arriba, pero se dibujan todos", "Un map", "Un switch más grande"], 1, "push(Pause) al pausar, pop() al volver."),
+      escribe("Con `std::vector<State*> stack;`, escribe la línea que actualiza SOLO el estado de arriba (llama a `Update(dt)`).", ["stack.back()->Update(dt)", "stack[stack.size()-1]->Update(dt)"], "back() es el último elemento: la cima de la pila.", { ph: "stack..." }),
+      bug("El sonido de victoria suena sin parar en la pantalla de resultados.", [
+        "case GameState::RESULTS:",
+        "    PlaySound(win_fx);",
+        "    if (IsKeyPressed(KEY_ENTER)) ChangeState(GameState::TITLE);",
+        "    break;"], 1, "Se llama cada frame. Va en OnEnter(RESULTS)."),
+      test("Un enemigo: PATROL → CHASE si ve al jugador; CHASE → PATROL si lo pierde 2 s. ¿Qué necesitas?", ["Solo un bool", "Un enum, un temporizador del estado y una comprobación de visión (raycast)", "Un joint", "Nada"], 1, ""),
+      test("¿Qué es una transición inválida y cómo la evitas?", ["No existen", "Pasar a un estado que no tiene sentido desde el actual (RESULTS → PAUSED); se comprueba en ChangeState o con una tabla", "Un error de compilación", "Un crash de Box2D"], 1, "`if (state == RESULTS && next == PAUSED) return;`"),
+      huecos("Convierte el estado en texto para depurar.", String.raw`const char* ToString(GameState s)
+{
+    ▢ (s)
+    {
+    case GameState::RACING: return "RACING";
+    case GameState::PAUSED: return "PAUSED";
+    ▢: return "?";
+    }
+}`, ["switch", "default", "if", "else", "break"], ["switch", "default"], "Muy útil en el HUD de debug.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "camara", titulo: "Cámara y dibujado con Raylib", icono: "🎥",
+    desc: "Camera2D: target, offset, zoom y rotación, seguir al coche suavemente, ratón en coordenadas del mundo, HUD, orden de dibujado y pantalla partida.",
+    chuleta: [
+      ["Camera2D", "```Camera2D cam = {};\ncam.offset = { SCREEN_W / 2.0f, SCREEN_H / 2.0f };  // dónde aparece el target en pantalla\ncam.target = car_pos;                              // punto del mundo que miras\ncam.zoom = 1.0f;\n\nBeginMode2D(cam);\n    DrawWorld();     // todo lo que se mueve con la cámara\nEndMode2D();\nDrawHUD();           // lo fijo en pantalla, fuera```"],
+      ["Seguimiento suave", "```cam.target.x += (car.x - cam.target.x) * 5.0f * dt;\ncam.target.y += (car.y - cam.target.y) * 5.0f * dt;```"],
+      ["Ratón", "`GetScreenToWorld2D(GetMousePosition(), cam)` → posición del ratón en el mundo (para el mouse joint)."]
+    ],
+    preguntas: [
+      test("¿Qué significa `cam.offset`?", ["La posición del mundo que miras", "Dónde aparece el target en la pantalla (normalmente el centro)", "El zoom", "La rotación"], 1, "", { nuevo: true }),
+      huecos("Cámara centrada en el coche.", String.raw`Camera2D cam = {};
+cam.▢ = { SCREEN_W / 2.0f, SCREEN_H / 2.0f };
+cam.▢ = { (float)x, (float)y };
+cam.zoom = 1.0f;`, ["offset", "target", "rotation", "zoom"], ["offset", "target"], ""),
+      orden("Orden de dibujado de un frame.", [
+        "BeginDrawing();",
+        "ClearBackground(BLACK);",
+        "BeginMode2D(cam);",
+        "DrawTrack(); DrawCars();",
+        "EndMode2D();",
+        "DrawHUD();",
+        "EndDrawing();"], "El HUD fuera de Mode2D, así no se mueve con la cámara."),
+      bug("El texto de las vueltas se va moviendo con la pista.", [
+        "BeginMode2D(cam);",
+        "DrawTrack();",
+        "DrawText(TextFormat(\"Lap %d\", lap), 20, 20, 30, WHITE);",
+        "EndMode2D();"], 2, "El HUD va después de EndMode2D."),
+      test("Con la cámara, el mouse joint agarra en un sitio que no es donde clicas. ¿Por qué?", ["Box2D falla", "GetMousePosition da coordenadas de pantalla; hay que pasarlas al mundo", "Falta zoom", "Por el filtrado"], 1, ""),
+      escribe("Escribe la posición del ratón en el mundo con la cámara `cam`.", ["GetScreenToWorld2D(GetMousePosition(), cam)"], "Y al revés: `GetWorldToScreen2D`.", { ph: "GetScreenToWorld2D(..." }),
+      escribe("Escribe el seguimiento suave del eje x: `cam.target.x` se acerca a `car_x` con factor `5.0f * dt`.", [/^cam\.target\.x\+=\(car_x-cam\.target\.x\)\*5(\.0)?f\*dt$/, /^cam\.target\.x\+=\(car_x-cam\.target\.x\)\*\(5(\.0)?f\*dt\)$/, /^cam\.target\.x=cam\.target\.x\+\(car_x-cam\.target\.x\)\*5(\.0)?f\*dt$/], "Interpolación (lerp): recorres una fracción de la distancia cada frame.", { ph: "cam.target.x += ..." }),
+      test("¿Qué pasa si el factor del lerp es 1.0 (sin dt)?", ["Nada", "La cámara se pega al coche de golpe (sin suavizado)", "La cámara no se mueve", "Crash"], 1, ""),
+      test("¿Qué hace `cam.zoom = 2.0f`?", ["Todo se ve a la mitad", "Todo se ve el doble de grande (ves menos mundo)", "Rota", "Nada"], 1, ""),
+      huecos("Zoom según la velocidad: más rápido = más lejos.", String.raw`float target_zoom = 1.2f - fminf(speed / 30.0f, 0.4f);
+cam.zoom ▢ (target_zoom - cam.zoom) * 2.0f * dt;`, ["+=", "=", "-=", "*="], ["+="], "También con lerp para que no dé tirones."),
+      test("Quieres que la cámara gire con el coche (vista detrás del coche). ¿Qué tocas?", ["offset", "cam.rotation = -angle_del_coche_en_grados", "zoom", "target"], 1, "Negativo para compensar el giro del coche."),
+      test("¿Qué es el parallax?", ["Un joint", "Fondos que se mueven más despacio que la cámara para dar profundidad", "Un tipo de sensor", "Una textura"], 1, "Dibuja el fondo con un target multiplicado por 0.5 (por ejemplo)."),
+      test("Pantalla partida para 2 jugadores: ¿qué usas?", ["Dos ventanas", "Dos RenderTexture2D, cada una con su Camera2D, y las dibujas una al lado de la otra", "Un zoom negativo", "No se puede"], 1, "`BeginTextureMode(rt1); BeginMode2D(cam1); ... EndMode2D(); EndTextureMode();`"),
+      bug("Las texturas de RenderTexture salen boca abajo.", [
+        "Rectangle src = { 0, 0, (float)rt.texture.width, (float)rt.texture.height };",
+        "DrawTextureRec(rt.texture, src, { 0, 0 }, WHITE);"], 0, "En OpenGL las RenderTexture están invertidas en Y: usa `-(float)rt.texture.height` en src."),
+      test("¿En qué orden dibujas pista, marcas de derrape, coches y partículas de humo?", ["Coches, pista, humo, marcas", "Pista → marcas → coches → humo", "Humo → pista → coches", "Da igual"], 1, "Lo último que se dibuja queda encima."),
+      test("Minimapa: ¿forma más sencilla?", ["Otra ventana", "Dibujar la pista y puntos de los coches a escala pequeña en una esquina, fuera de Mode2D", "Un sensor", "Zoom 0"], 1, "`DrawCircle(mx + x * 0.1f, my + y * 0.1f, 3, RED);`")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "box2dpro", titulo: "Box2D avanzado", icono: "b2+",
+    desc: "Consultas de área (QueryAABB), callbacks de raycast con fraction, recorrer cuerpos y contactos, sleep, fixedRotation, motores de joints y prismatic.",
+    chuleta: [
+      ["QueryAABB", "```class Query : public b2QueryCallback {\npublic:\n    std::vector<b2Body*> found;\n    bool ReportFixture(b2Fixture* f) override { found.push_back(f->GetBody()); return true; } // true = sigue\n};\nb2AABB box; box.lowerBound = p - b2Vec2(2,2); box.upperBound = p + b2Vec2(2,2);\nQuery q; world->QueryAABB(&q, box);```"],
+      ["RayCast callback", "```float ReportFixture(b2Fixture* f, const b2Vec2& point, const b2Vec2& normal, float fraction) override\n{\n    hit = true; hit_point = point;\n    return fraction;   // recorta el rayo: al final queda el impacto más cercano\n}\n// return -1 ignora esta fixture, 0 para, 1 sigue sin recortar```"],
+      ["Recorrer", "```for (b2Body* b = world->GetBodyList(); b; b = b->GetNext()) { ... }\nfor (b2ContactEdge* ce = body->GetContactList(); ce; ce = ce->next)\n    if (ce->contact->IsTouching()) { ... }```"]
+    ],
+    preguntas: [
+      test("Una explosión debe empujar todo lo que hay en un radio. ¿Qué usas para encontrar los cuerpos?", ["Un sensor permanente", "world->QueryAABB con una caja alrededor (y luego filtras por distancia)", "Recorrer los píxeles", "RayCast"], 1, "", { nuevo: true }),
+      huecos("El callback de la consulta.", String.raw`class Query : public b2▢ {
+public:
+    std::vector<b2Body*> found;
+    bool ReportFixture(b2Fixture* f) ▢
+    {
+        found.push_back(f->GetBody());
+        return true;
+    }
+};`, ["QueryCallback", "override", "ContactListener", "virtual", "RayCastCallback"], ["QueryCallback", "override"], "Devolver true = seguir buscando."),
+      orden("Aplica la explosión.", [
+        "for (b2Body* b : q.found)",
+        "{",
+        "    b2Vec2 d = b->GetPosition() - center;",
+        "    float dist = d.Length();",
+        "    if (dist < 0.01f || dist > radius) continue;",
+        "    d *= 1.0f / dist;",
+        "    b->ApplyLinearImpulseToCenter(power * (1.0f - dist / radius) * d, true);",
+        "}"], "Dirección desde el centro, normalizada, y más fuerte cuanto más cerca."),
+      test("QueryAABB devuelve fixtures cuya caja envolvente toca la tuya. ¿Qué implica?", ["Que siempre se tocan de verdad", "Que puede haber falsos positivos: hay que comprobar la distancia o TestPoint", "Nada", "Que solo devuelve estáticos"], 1, ""),
+      test("En un b2RayCastCallback, ¿qué hace `return fraction;`?", ["Para el rayo", "Recorta el rayo a ese punto: al final te quedas con el impacto más cercano", "Ignora la fixture", "Sigue sin cambios"], 1, ""),
+      test("¿Y `return -1.0f;`?", ["Para todo", "Ignora esta fixture (útil para saltarte sensores o al propio coche)", "Error", "Recorta"], 1, "0 = parar ya; 1 = seguir sin recortar."),
+      huecos("Raycast que ignora sensores.", String.raw`float ReportFixture(b2Fixture* f, const b2Vec2& p, const b2Vec2& n, float fraction) override
+{
+    if (f->▢()) return ▢;
+    hit = true; point = p;
+    return fraction;
+}`, ["IsSensor", "-1.0f", "0.0f", "1.0f", "GetBody"], ["IsSensor", "-1.0f"], ""),
+      escribe("Escribe la cabecera del for que recorre todos los cuerpos del mundo `world` (variable `b`).", [/^for\(b2Body\*b=world->GetBodyList\(\);b;b=b->GetNext\(\)\)\{?$/, /^for\(b2Body\*b=world->GetBodyList\(\);b!=nullptr;b=b->GetNext\(\)\)\{?$/, /^for\(b2Body\*b=world->GetBodyList\(\);b!=NULL;b=b->GetNext\(\)\)\{?$/], "Lista enlazada: GetBodyList y GetNext.", { ph: "for (b2Body* b = ..." }),
+      bug("Crash al destruir cuerpos recorriendo la lista.", [
+        "for (b2Body* b = world->GetBodyList(); b; b = b->GetNext())",
+        "    if (IsDead(b)) world->DestroyBody(b);"], 0, "Tras DestroyBody(b), b->GetNext() lee memoria liberada. Guarda `b2Body* next = b->GetNext();` antes de destruir."),
+      test("¿Qué es `IsTouching()` en un contacto de `GetContactList()`?", ["Siempre true", "Indica si de verdad se tocan (la lista también tiene contactos cuyos AABB solo se solapan)", "Si es sensor", "Si está dormido"], 1, ""),
+      test("¿Qué hace `SetFixedRotation(true)`?", ["Fija la posición", "El cuerpo no puede girar (ideal para el personaje de un plataformas)", "Lo duerme", "Lo hace estático"], 1, ""),
+      test("¿Qué significa que un cuerpo esté dormido (sleep)?", ["Está destruido", "Box2D deja de simularlo porque está quieto; se despierta al tocarlo o con wake = true", "No colisiona nunca", "Es un sensor"], 1, "Si lo teletransportas con SetTransform, despiértalo con SetAwake(true)."),
+      huecos("Un revolute con motor (una puerta giratoria).", String.raw`b2RevoluteJointDef jd;
+jd.Initialize(ground, door, pivot);
+jd.▢ = true;
+jd.motorSpeed = 2.0f;        // rad/s
+jd.▢ = 500.0f;     // N·m
+world->CreateJoint(&jd);`, ["enableMotor", "maxMotorTorque", "enableLimit", "maxMotorForce", "lowerAngle"], ["enableMotor", "maxMotorTorque"], "En el prismatic es maxMotorForce (lineal)."),
+      test("¿Qué joint usas para una plataforma que solo se mueve arriba y abajo?", ["Revolute", "Prismatic (desplazamiento sobre un eje)", "Weld", "Mouse"], 1, ""),
+      test("¿Qué hace un weld joint?", ["Une dos cuerpos rígidamente (como si fueran uno)", "Los separa", "Hace de muelle", "Gira"], 0, ""),
+      test("Al hacer DestroyBody de un cuerpo con joints, ¿qué pasa con los joints?", ["Se quedan", "Se destruyen también: tus punteros a ellos quedan colgando (ponlos a nullptr)", "Crash siempre", "Pasan al otro cuerpo"], 1, "Es justo el problema del mouse_joint con F1."),
+      escribe("Escribe la línea que hace que el cuerpo `b` no se duerma nunca.", ["b->SetSleepingAllowed(false)"], "Útil para el coche del jugador.", { ph: "b->..." }),
+      test("¿Cómo cambias la masa de un cuerpo después de crearlo sin tocar la densidad?", ["SetMass", "b2MassData md; b->GetMassData(&md); md.mass = 5; b->SetMassData(&md);", "No se puede", "SetDensity"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "cpppro", titulo: "C++ que te hace parecer senior", icono: "C++",
+    desc: "const, static, constexpr, paso por referencia, casts, operadores de b2Vec2, comparar floats, struct vs class y errores de enlazado.",
+    chuleta: [
+      ["Parámetros", "`void F(Car c)` copia. `void F(Car& c)` puede modificarlo. `void F(const Car& c)` no copia y no lo toca. Punteros: `Car*` puede ser nullptr."],
+      ["const", "```float GetSpeed() const;          // no modifica el objeto\nconst char* name;                 // no puedes cambiar los chars\nchar* const p;                    // no puedes cambiar el puntero\nconstexpr float PPM = 50.0f;      // constante en compilación```"],
+      ["static", "```class Car { static int count; };   // una para TODOS los coches\nint Car::count = 0;                 // definición en el .cpp\nstatic int hits = 0;                // dentro de una función: conserva el valor entre llamadas```"]
+    ],
+    preguntas: [
+      test("¿Cuál es la mejor firma para una función que solo lee un vector grande?", ["void F(std::vector<int> v)", "void F(const std::vector<int>& v)", "void F(std::vector<int>* v)", "void F(std::vector<int>& v)"], 1, "Sin copia y sin poder modificarlo por error.", { nuevo: true }),
+      test("¿Qué indica el `const` final en `float GetForwardSpeed() const;`?", ["Que devuelve un const", "Que el método no modifica el objeto (se puede llamar sobre un const Car&)", "Que es estático", "Nada"], 1, ""),
+      bug("No compila: «no se puede llamar a un método no const».", [
+        "float Car::GetSpeed() { return speed; }",
+        "void Draw(const Car& car) { DrawText(TextFormat(\"%.1f\", car.GetSpeed()), 0, 0, 20, WHITE); }"], 0, "GetSpeed no modifica nada: debe ser `float GetSpeed() const`."),
+      test("¿Qué es un miembro `static` de una clase?", ["Uno por objeto", "Uno compartido por todos los objetos de esa clase", "Uno que no cambia", "Uno privado"], 1, "Ejemplo: `static int cars_created;`"),
+      huecos("Contador de coches creados.", String.raw`// Car.h
+class Car {
+public:
+    Car() { ▢++; }
+    static int count;
+};
+// Car.cpp
+int ▢ = 0;`, ["count", "Car::count", "this->count", "static count"], ["count", "Car::count"], "Sin la definición en el .cpp da error de enlazado (unresolved external)."),
+      test("Error «LNK2001: unresolved external symbol». ¿Causa típica?", ["Error de sintaxis", "Declaraste algo (función o static) pero nunca lo definiste, o el .cpp no está en el proyecto", "Falta un ;", "Box2D roto"], 1, ""),
+      test("¿Qué ventaja tiene `constexpr float PIXELS_PER_METER = 50.0f;` sobre `#define`?", ["Ninguna", "Tiene tipo, respeta los ámbitos y el depurador lo ve", "Es más lento", "Se puede cambiar en ejecución"], 1, ""),
+      bug("El macro da un resultado raro: `METERS_TO_PIXELS(2 + 3)` da 152 en vez de 250. ¿Qué línea?", [
+        "#define PPM 50",
+        "#define METERS_TO_PIXELS(m) m * PPM",
+        "int px = METERS_TO_PIXELS(2 + 3);"], 1, "Se expande a `2 + 3 * 50`. Los macros necesitan paréntesis: `((m) * PPM)`. O mejor, una función inline."),
+      escribe("Escribe el cast moderno de `float speed` a int (`static_cast`).", ["static_cast<int>(speed)"], "Más fácil de buscar y más seguro que `(int)speed`.", { ph: "static_cast<...>(...)" }),
+      test("¿Cuándo usas `dynamic_cast<AICar*>(car)`?", ["Siempre", "Para comprobar en ejecución si un Car* es en realidad un AICar (devuelve nullptr si no)", "Para convertir float a int", "Nunca"], 1, "Requiere al menos un método virtual en la base."),
+      test("¿Por qué `if (speed == 0.3f)` casi nunca es true?", ["Por un bug del compilador", "Los floats tienen error de redondeo: compara con un margen `fabsf(speed - 0.3f) < 0.001f`", "0.3f no existe", "Siempre es true"], 1, ""),
+      escribe("Escribe la condición: `a` y `b` (floats) son casi iguales con margen 0.001f.", [/^fabsf\(a-b\)<0\.001f$/, /^fabsf\(b-a\)<0\.001f$/, /^abs\(a-b\)<0\.001f$/, /^std::abs\(a-b\)<0\.001f$/], "", { ph: "fabsf(...) < ..." }),
+      test("¿Qué operadores de b2Vec2 existen en Box2D 2.4?", ["Ninguno", "+, -, float * vec, +=, -=, *= (pero no vec * vec)", "Solo +", "Todos, incluido vec * vec"], 1, "Para producto escalar usa b2Dot; para el vectorial b2Cross."),
+      bug("No compila.", [
+        "b2Vec2 dir = GetForward();",
+        "b2Vec2 f = dir * force;",
+        "body->ApplyForceToCenter(f, true);"], 1, "En Box2D 2.4 existe `float * b2Vec2`, no `b2Vec2 * float`: escribe `force * dir`."),
+      test("struct vs class en C++:", ["Son mundos distintos", "Lo mismo, pero en struct todo es public por defecto y en class private", "struct no tiene métodos", "class no puede heredar"], 1, ""),
+      test("¿Qué es `nullptr` frente a `NULL`?", ["Lo mismo", "Un puntero nulo con tipo propio: evita ambigüedades con el entero 0", "Un objeto vacío", "Un error"], 1, ""),
+      test("`unsigned int lives = 0; lives--;` ¿Cuánto vale?", ["-1", "4294967295 (da la vuelta)", "0", "Error"], 1, "Los unsigned no tienen negativos: cuidado con restar."),
+      huecos("Inicialización uniforme con llaves.", String.raw`struct GridPos { int x, y; float angle; };
+GridPos grid[2] = ▢ { 100, 200, 0.0f }, { 140, 200, 0.0f } ▢;`, ["{", "}", "(", ")"], ["{", "}"], ""),
+      test("¿Qué hace `auto` en `auto it = textures.find(\"car\");`?", ["Es un tipo dinámico", "El compilador deduce el tipo (aquí, un iterador del map)", "Hace la variable global", "Nada"], 1, "Sigue siendo tipado estático: el tipo se fija al compilar.")
     ]
   });
 })();
