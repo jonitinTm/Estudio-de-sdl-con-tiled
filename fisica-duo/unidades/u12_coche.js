@@ -35,7 +35,7 @@ if (throttle > 0.0f ▢ speed ▢ max_speed)
         "        b->SetAngularVelocity(steer * turn_speed);",
         "}"], 3, "Falta escalar por la velocidad: `steer * turn_speed * factor`, con factor = min(|speed| / 2.5, 1) y negativo marcha atrás."),
       escribe("Escribe el factor de giro (float) que vale 0 parado y 1 a partir de 2.5 m/s, usando `speed`, `fabsf` y `fminf`.", [/^fminf\(fabsf\(speed\)\/2\.5f?,1(\.0f?)?\)$/, /^fminf\(1(\.0f?)?,fabsf\(speed\)\/2\.5f?\)$/],
-        "`fminf(fabsf(speed) / 2.5f, 1.0f)`. Luego, si speed < 0, se invierte.", { ph: "fminf(..." }),
+        "`fminf(fabsf(speed) / 2.5f, 1.0f)`. Luego, si speed < 0, se invierte.", { sol: "fminf(fabsf(speed) / 2.5f, 1.0f)", ph: "fminf(..." }),
       test("Marcha atrás, el volante debe…", ["funcionar igual", "funcionar al revés (como en un coche real)", "bloquearse", "girar el doble"], 1, "Por eso el factor se hace negativo si la velocidad frontal es negativa."),
       test("¿Cómo implementas el freno de mano (acción extra con espacio)?", ["Subiendo la masa", "Reduciendo mucho el impulso lateral máximo mientras se pulsa: el coche derrapa", "Parando el coche", "Con un joint"], 1, "`handbrake = IsKeyDown(KEY_SPACE);` y `if (handbrake) max_impulse *= 0.25f;`"),
       orden("Nitro: un segundo de turbo con 5 segundos de recarga.", [

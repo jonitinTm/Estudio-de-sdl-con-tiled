@@ -32,7 +32,7 @@ int ▢ = 0;`, ["count", "Car::count", "this->count", "static count"], ["count",
       escribe("Escribe el cast moderno de `float speed` a int (`static_cast`).", ["static_cast<int>(speed)"], "Más fácil de buscar y más seguro que `(int)speed`.", { ph: "static_cast<...>(...)" }),
       test("¿Cuándo usas `dynamic_cast<AICar*>(car)`?", ["Siempre", "Para comprobar en ejecución si un Car* es en realidad un AICar (devuelve nullptr si no)", "Para convertir float a int", "Nunca"], 1, "Requiere al menos un método virtual en la base."),
       test("¿Por qué `if (speed == 0.3f)` casi nunca es true?", ["Por un bug del compilador", "Los floats tienen error de redondeo: compara con un margen `fabsf(speed - 0.3f) < 0.001f`", "0.3f no existe", "Siempre es true"], 1, ""),
-      escribe("Escribe la condición: `a` y `b` (floats) son casi iguales con margen 0.001f.", [/^fabsf\(a-b\)<0\.001f$/, /^fabsf\(b-a\)<0\.001f$/, /^abs\(a-b\)<0\.001f$/, /^std::abs\(a-b\)<0\.001f$/], "", { ph: "fabsf(...) < ..." }),
+      escribe("Escribe la condición: `a` y `b` (floats) son casi iguales con margen 0.001f.", [/^fabsf\(a-b\)<0\.001f$/, /^fabsf\(b-a\)<0\.001f$/, /^abs\(a-b\)<0\.001f$/, /^std::abs\(a-b\)<0\.001f$/], "", { sol: "fabsf(a - b) < 0.001f", ph: "fabsf(...) < ..." }),
       test("¿Qué operadores de b2Vec2 existen en Box2D 2.4?", ["Ninguno", "+, -, float * vec, +=, -=, *= (pero no vec * vec)", "Solo +", "Todos, incluido vec * vec"], 1, "Para producto escalar usa b2Dot; para el vectorial b2Cross."),
       bug("No compila.", [
         "b2Vec2 dir = GetForward();",

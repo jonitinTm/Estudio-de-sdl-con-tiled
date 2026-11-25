@@ -38,7 +38,7 @@ if (mouse_joint != nullptr && ▢(MOUSE_BUTTON_LEFT))
         "}"], 2, "Antes de destruir: `if (mouse_joint && mouse_joint->GetBodyB() == pbody->body) mouse_joint = nullptr;` — Box2D destruye el joint con el cuerpo y tu puntero queda colgando."),
       test("¿Por qué `maxForce = 100 * masa`?", ["Por estética", "Para que se arrastre igual de bien un cuerpo ligero que uno pesado", "Obligatorio", "Para que no se mueva"], 1, ""),
       escribe("Escribe el límite superior de un revolute para 90 grados, usando b2_pi.", [/^0\.5f?\*b2_pi$/, /^b2_pi\*0\.5f?$/, /^b2_pi\/2(\.0f?)?$/],
-        "Los ángulos de Box2D van en radianes: 90° = π/2.", { ph: "... * b2_pi" }),
+        "Los ángulos de Box2D van en radianes: 90° = π/2.", { sol: "0.5f * b2_pi", ph: "... * b2_pi" }),
       huecos("Una barrera giratoria con motor.", String.raw`b2RevoluteJointDef jd;
 jd.Initialize(ground, barrier, barrier->GetWorldCenter());
 jd.▢ = true;

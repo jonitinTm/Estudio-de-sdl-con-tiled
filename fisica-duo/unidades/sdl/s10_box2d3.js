@@ -14,7 +14,7 @@
 bd.type = ▢;
 bd.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
 b2BodyId body = b2CreateBody(world, &bd);`, ["b2DefaultBodyDef", "b2_dynamicBody", "b2BodyDef", "b2_staticBody", "DYNAMIC"], ["b2DefaultBodyDef", "b2_dynamicBody"], "Empieza siempre por la def por defecto: rellena todos los campos con valores válidos."),
-      escribe("Escribe la caja de 32×64 px con b2MakeBox (usa PIXEL_TO_METERS; recuerda que recibe medias medidas).", [/^b2MakeBox\(PIXEL_TO_METERS\(32\)\*0\.5f,PIXEL_TO_METERS\(64\)\*0\.5f\)$/, /^b2MakeBox\(PIXEL_TO_METERS\(16\),PIXEL_TO_METERS\(32\)\)$/, /^b2MakeBox\(PIXEL_TO_METERS\(32\)\/2,PIXEL_TO_METERS\(64\)\/2\)$/], "Igual que SetAsBox en Box2D 2: media anchura y media altura.", { ph: "b2MakeBox(..." }),
+      escribe("Escribe la caja de 32×64 px con b2MakeBox (usa PIXEL_TO_METERS; recuerda que recibe medias medidas).", [/^b2MakeBox\(PIXEL_TO_METERS\(32\)\*0\.5f,PIXEL_TO_METERS\(64\)\*0\.5f\)$/, /^b2MakeBox\(PIXEL_TO_METERS\(16\),PIXEL_TO_METERS\(32\)\)$/, /^b2MakeBox\(PIXEL_TO_METERS\(32\)\/2,PIXEL_TO_METERS\(64\)\/2\)$/], "Igual que SetAsBox en Box2D 2: media anchura y media altura.", { sol: "b2MakeBox(PIXEL_TO_METERS(32) * 0.5f, PIXEL_TO_METERS(64) * 0.5f)", ph: "b2MakeBox(..." }),
       test("PIXELS_PER_METER = 32. Un jugador de 32×48 px mide en Box2D…", ["32 × 48 m", "1 × 1,5 m", "0,5 × 0,75 m", "16 × 24 m"], 1, "Box2D está afinado para objetos de 0,1 a 10 m."),
       orden("Crear la forma y enlazar el cuerpo con tu PhysBody.", [
         "b2Polygon box = b2MakeBox(halfW, halfH);",
@@ -37,7 +37,7 @@ v.x = 0.0f;
 if (right) v.x = speed;
 if (left)  v.x = -speed;
 b2Body_▢(pbody->body, v);`, ["SetLinearVelocity", "ApplyForce", "SetTransform", "GetLinearVelocity"], ["SetLinearVelocity"], "Si pusieras v.y = 0, el jugador flotaría."),
-      escribe("Escribe el salto: impulso hacia arriba `jumpForce` al centro del cuerpo `pbody->body`.", [/^b2Body_ApplyLinearImpulseToCenter\(pbody->body,(b2Vec2)?\{0(\.0f?|f)?,-jumpForce\},true\)$/], "Arriba es Y negativa.", { ph: "b2Body_ApplyLinearImpulseToCenter(..." }),
+      escribe("Escribe el salto: impulso hacia arriba `jumpForce` al centro del cuerpo `pbody->body`.", [/^b2Body_ApplyLinearImpulseToCenter\(pbody->body,(b2Vec2)?\{0(\.0f?|f)?,-jumpForce\},true\)$/], "Arriba es Y negativa.", { sol: "b2Body_ApplyLinearImpulseToCenter(pbody->body, { 0.0f, -jumpForce }, true);", ph: "b2Body_ApplyLinearImpulseToCenter(..." }),
       test("¿Cómo evitas el doble salto infinito?", ["No se puede", "Un bool onGround que se pone true al tocar una plataforma (contacto con normal hacia arriba) y false al saltar", "Bajando la gravedad", "Con KEY_REPEAT"], 1, ""),
       bug("Teletransportas al jugador al checkpoint y se queda flotando hasta que lo tocas.", [
         "b2Body_SetTransform(pbody->body, { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) }, b2Rot_identity);",

@@ -63,7 +63,7 @@ Get(a, b);` }),
         "Dos enteros dan una división entera: se pierden los decimales. Para 2.5 escribe `5.0f / 2` o `(float)a / b`.", { code: String.raw`int a = 5, b = 2;
 float r = a / b;`, nuevo: true }),
       escribe("Escribe la división de `frames` entre `seconds` (los dos `int`) para que el resultado tenga decimales.", [/^\(float\)frames\/seconds$/, /^\(float\)frames\/\(float\)seconds$/, /^frames\/\(float\)seconds$/, /^static_cast<float>\(frames\)\/seconds$/, /^\(double\)frames\/seconds$/],
-        "Basta con convertir uno de los dos a `float` (o `double`) antes de dividir: `(float)frames / seconds`.", { ph: "(float)..." }),
+        "Basta con convertir uno de los dos a `float` (o `double`) antes de dividir: `(float)frames / seconds`.", { sol: "(float)frames / seconds", ph: "(float)..." }),
       test("¿Para qué sirve `#pragma once` al principio de un `.h`?", ["Para compilar más rápido", "Para que el archivo no se incluya dos veces en el mismo .cpp", "Para que sea público", "Para Windows"], 1, "Sin él, incluir el mismo .h por dos caminos da errores de “redefinición”."),
       test("¿Para qué sirve escribir `class PhysBody;` en un `.h` en lugar de `#include \"ModulePhysics.h\"`?", ["Para crear la clase", "Forward declaration: basta para declarar punteros `PhysBody*` y evita includes circulares", "Para hacerla abstracta", "Para nada"], 1,
         "Si solo usas punteros o referencias a una clase, no necesitas su definición completa en el `.h`. El `#include` va en el `.cpp`.", { nuevo: true }),

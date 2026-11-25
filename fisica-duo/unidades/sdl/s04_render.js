@@ -8,7 +8,7 @@
       ["Reglas", "x, y en píxeles del **mundo**. La cámara es **negativa**. `speed = 0` → no se aplica la cámara (HUD). `speed = 0.5` → parallax."]
     ],
     preguntas: [
-      escribe("Escribe la carga de \"Assets/player.png\" con SDL3_image (variable `tex`, renderer `renderer`).", [/^SDL_Texture\*tex=IMG_LoadTexture\(renderer,"Assets\/player\.png"\)$/, /^tex=IMG_LoadTexture\(renderer,"Assets\/player\.png"\)$/], "En el motor lo hace Textures::Load, que además guarda la textura para liberarla al final.", { ph: "SDL_Texture* tex = ..." }),
+      escribe("Escribe la carga de \"Assets/player.png\" con SDL3_image (variable `tex`, renderer `renderer`).", [/^SDL_Texture\*tex=IMG_LoadTexture\(renderer,"Assets\/player\.png"\)$/, /^tex=IMG_LoadTexture\(renderer,"Assets\/player\.png"\)$/], "En el motor lo hace Textures::Load, que además guarda la textura para liberarla al final.", { sol: "SDL_Texture* tex = IMG_LoadTexture(renderer, \"Assets/player.png\");", ph: "SDL_Texture* tex = ..." }),
       test("¿Qué es una sección (SDL_Rect) en DrawTexture?", ["La posición en pantalla", "El trozo de la imagen que quieres dibujar (un frame del spritesheet o un tile)", "La cámara", "El color"], 1, "", { nuevo: true }),
       test("Spritesheet de frames de 32×32 en una fila. ¿Sección del frame 3 (empezando en 0)?", ["{ 3, 0, 32, 32 }", "{ 96, 0, 32, 32 }", "{ 0, 96, 32, 32 }", "{ 32, 32, 3, 3 }"], 1, "x = 3 · 32 = 96."),
       test("camera.x = -400. Dibujas un árbol en x = 500 (mundo). ¿Dónde aparece en pantalla?", ["900", "100", "-400", "500"], 1, "pantalla = camera.x + mundo = -400 + 500."),
@@ -28,7 +28,7 @@ SDL_RenderTextureRotated(renderer, tex, &src, &dst, 0.0, NULL, mode);`, ["SDL_FL
         "Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2, &currentFrame);"], "La física da el CENTRO; la textura se dibuja desde la esquina superior izquierda."),
       test("El sprite se ve borroso al escalar. ¿Qué cambias?", ["Más FPS", "SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST)", "La cámara", "El ángulo"], 1, ""),
       test("¿Qué hace `SDL_RenderRect` frente a `SDL_RenderFillRect`?", ["Lo mismo", "Solo el borde (ideal para dibujar colliders en debug)", "Rellena", "Dibuja texto"], 1, ""),
-      escribe("Escribe un SDL_FRect llamado `r` en (10, 20) de 32×32.", [/^SDL_FRectr=\{10(\.0f?|f)?,20(\.0f?|f)?,32(\.0f?|f)?,32(\.0f?|f)?\}$/], "x, y, w, h.", { ph: "SDL_FRect r = { ... }" }),
+      escribe("Escribe un SDL_FRect llamado `r` en (10, 20) de 32×32.", [/^SDL_FRectr=\{10(\.0f?|f)?,20(\.0f?|f)?,32(\.0f?|f)?,32(\.0f?|f)?\}$/], "x, y, w, h.", { sol: "SDL_FRect r = { 10, 20, 32, 32 };", ph: "SDL_FRect r = { ... }" }),
       test("Dibujas 6.000 tiles por frame y va lento. ¿Primera optimización?", ["Bajar la resolución", "Dibujar solo los tiles dentro de la cámara (culling)", "Usar más texturas", "Quitar el VSYNC"], 1, "Calcula el rango de columnas y filas visibles con WorldToMap de las esquinas de la pantalla.")
     ]
   });

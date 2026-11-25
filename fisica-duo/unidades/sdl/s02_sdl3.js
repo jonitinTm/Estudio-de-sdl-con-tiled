@@ -9,7 +9,7 @@
     ],
     preguntas: [
       test("En SDL3, ¿qué devuelve `SDL_Init` si todo va bien?", ["0", "true", "-1", "Un puntero"], 1, "En SDL2 devolvía 0. En SDL3 es bool: por eso `if (!SDL_Init(...))` es el error.", { nuevo: true }),
-      escribe("Escribe la creación de una ventana de 1280×720 sin flags, título \"Juego\" (variable `window`).", [/^SDL_Window\*window=SDL_CreateWindow\("Juego",1280,720,0\)$/, /^window=SDL_CreateWindow\("Juego",1280,720,0\)$/], "En SDL3 no hay x, y en CreateWindow.", { ph: "SDL_Window* window = ..." }),
+      escribe("Escribe la creación de una ventana de 1280×720 sin flags, título \"Juego\" (variable `window`).", [/^SDL_Window\*window=SDL_CreateWindow\("Juego",1280,720,0\)$/, /^window=SDL_CreateWindow\("Juego",1280,720,0\)$/], "En SDL3 no hay x, y en CreateWindow.", { sol: "SDL_Window* window = SDL_CreateWindow(\"Juego\", 1280, 720, 0);", ph: "SDL_Window* window = ..." }),
       huecos("Crea el renderer.", String.raw`SDL_Renderer* renderer = SDL_CreateRenderer(▢, ▢);
 if (renderer == nullptr) LOG("Error: %s", SDL_GetError());`, ["window", "NULL", "renderer", "SDL_INIT_VIDEO"], ["window", "NULL"], "El segundo parámetro es el nombre del driver: NULL = el mejor disponible."),
       orden("Un frame de dibujado.", ["SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);", "SDL_RenderClear(renderer);", "DibujarTodo();", "SDL_RenderPresent(renderer);"], "Limpiar, dibujar, presentar. Sin Present no ves nada."),

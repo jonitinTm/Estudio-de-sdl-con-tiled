@@ -20,7 +20,7 @@
       test("¿Por qué CleanUp se llama en orden inverso?", ["Por estética", "Porque los últimos módulos dependen de los primeros: hay que liberar a los que usan antes que a los usados (Scene antes que Render)", "Es más rápido", "No se llama en orden inverso"], 1, ""),
       test("¿Qué pasa si Update de la escena devuelve false?", ["Nada", "El Engine sale del bucle y empieza a cerrar (CleanUp)", "Se reinicia la escena", "Crash"], 1, ""),
       escribe("Escribe la condición de Scene::Update para salir con ESC (usa `Engine::GetInstance().input->GetKey` y `KEY_DOWN`).", [/^if\(Engine::GetInstance\(\)\.input->GetKey\(SDL_SCANCODE_ESCAPE\)==KEY_DOWN\)(returnfalse)?$/],
-        "`if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) return false;`", { ph: "if (Engine::GetInstance()..." }),
+        "`if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) return false;`", { sol: "if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) return false;", ph: "if (Engine::GetInstance()..." }),
       test("¿Por qué el orden en que se añaden los módulos importa?", ["No importa", "Se actualizan en ese orden: Input debe ir antes que Scene, y Render el último (presenta el frame)", "Solo importa el primero", "Por la memoria"], 1, ""),
       orden("Orden típico de AddModule.", ["AddModule(window);", "AddModule(input);", "AddModule(textures);", "AddModule(audio);", "AddModule(physics);", "AddModule(scene);", "AddModule(map);", "AddModule(entityManager);", "AddModule(render);"], "Render el último para que su PostUpdate presente lo que han dibujado todos. (Map y EntityManager pueden variar según el handout)."),
       bug("El juego no cierra nunca con ESC.", [
@@ -41,7 +41,7 @@
     return true;
 }`, ["active", "false", "name", "true", "dt"], ["active", "false"], ""),
       test("¿Qué ventaja tiene que Render dibuje con una función `DrawTexture` del módulo en vez de llamar a SDL directamente desde el Player?", ["Ninguna", "Un solo sitio aplica la cámara, la escala y el debug: el jugador no sabe nada de SDL_Renderer", "Más velocidad", "Menos memoria"], 1, ""),
-      escribe("Escribe la cabecera (declaración en el .h) del Update de Scene que sobrescribe el de Module.", [/^boolUpdate\(floatdt\)override$/, /^virtualboolUpdate\(floatdt\)override$/], "`bool Update(float dt) override;`", { ph: "bool Update(..." }),
+      escribe("Escribe la cabecera (declaración en el .h) del Update de Scene que sobrescribe el de Module.", [/^boolUpdate\(floatdt\)override$/, /^virtualboolUpdate\(floatdt\)override$/], "`bool Update(float dt) override;`", { sol: "bool Update(float dt) override;", ph: "bool Update(..." }),
       test("¿Por qué el destructor de Module es virtual?", ["No hace falta", "Porque los módulos se borran a través de un puntero a Module", "Para que sea más rápido", "Para que no se pueda heredar"], 1, "")
     ]
   });

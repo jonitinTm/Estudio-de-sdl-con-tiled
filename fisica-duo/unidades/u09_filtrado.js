@@ -20,7 +20,7 @@
     CAT_SENSOR = 1 << ▢
 };`, ["0", "1", "2", "3", "4"], ["0", "1", "2"], "Un bit cada una: 1, 2, 4."),
       escribe("Escribe la máscara de un coche que choca con muros, coches y sensores (categorías CAT_WALL, CAT_CAR, CAT_SENSOR).", [/^(CAT_(WALL|CAR|SENSOR)\|){2}CAT_(WALL|CAR|SENSOR)$/],
-        "Se combinan con OR de bits: `CAT_WALL | CAT_CAR | CAT_SENSOR`.", { ph: "CAT_WALL | ..." }),
+        "Se combinan con OR de bits: `CAT_WALL | CAT_CAR | CAT_SENSOR`.", { sol: "CAT_WALL | CAT_CAR | CAT_SENSOR", ph: "CAT_WALL | ..." }),
       huecos("Aplica el filtro a la fixture del coche antes de crearla.", String.raw`fixture.filter.▢ = CAT_CAR;
 fixture.filter.▢ = CAT_WALL | CAT_CAR | CAT_SENSOR;
 b->CreateFixture(&fixture);`, ["categoryBits", "maskBits", "groupIndex", "isSensor", "density"], ["categoryBits", "maskBits"], ""),

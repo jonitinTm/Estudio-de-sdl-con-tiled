@@ -16,7 +16,7 @@ while (timer ▢ frameDurationMs)
     current++;
 }`, [">=", "-=", "=", "+=", "<"], [">=", "-="], "Restar (no poner a 0) conserva el tiempo sobrante: la animación no se retrasa."),
       test("¿Por qué `while` y no `if`?", ["Es igual", "Si un frame del juego dura más que dos frames de la animación, hay que avanzar varios", "Por estilo", "Para el loop"], 1, ""),
-      escribe("Escribe la línea que, al pasarse del último frame, vuelve al 0 si `loop` o se queda en el último si no.", [/^current=loop\?0:\(int\)frames\.size\(\)-1$/, /^current=loop\?0:frames\.size\(\)-1$/, /^current=\(loop\)\?0:\(int\)frames\.size\(\)-1$/], "", { ph: "current = loop ? ..." }),
+      escribe("Escribe la línea que, al pasarse del último frame, vuelve al 0 si `loop` o se queda en el último si no.", [/^current=loop\?0:\(int\)frames\.size\(\)-1$/, /^current=loop\?0:frames\.size\(\)-1$/, /^current=\(loop\)\?0:\(int\)frames\.size\(\)-1$/], "", { sol: "current = loop ? 0 : (int)frames.size() - 1;", ph: "current = loop ? ..." }),
       test("¿Qué es una animación ping-pong?", ["Muy rápida", "Va 0→N y luego N→0 en vez de saltar al principio", "Aleatoria", "Que no se repite"], 1, ""),
       test("¿Cuándo usas `HasFinished()`?", ["Siempre", "Para animaciones sin loop (muerte, ataque): cambias de estado cuando acaba", "Para el idle", "Nunca"], 1, ""),
       bug("La animación de correr se queda congelada en el primer frame mientras corres.", [
@@ -37,7 +37,7 @@ while (timer ▢ frameDurationMs)
         "if (target > mapW - screenW) target = mapW - screenW;",
         "render->camera.x = -target;"], "La cámara del motor es negativa."),
       test("La cámara va al revés: el jugador va a la derecha y el mundo también. ¿Causa?", ["Box2D", "Has olvidado el signo negativo de la cámara", "La animación", "El dt"], 1, ""),
-      escribe("Escribe la cámara suavizada en x: `camera.x` se acerca a `-target` con el factor `0.1f`.", [/^camera\.x\+=\(-target-camera\.x\)\*0\.1f$/, /^camera\.x=camera\.x\+\(-target-camera\.x\)\*0\.1f$/, /^render->camera\.x\+=\(-target-render->camera\.x\)\*0\.1f$/], "Lerp. (Recuerda que camera.x debería ser float para movimientos pequeños).", { ph: "camera.x += ..." }),
+      escribe("Escribe la cámara suavizada en x: `camera.x` se acerca a `-target` con el factor `0.1f`.", [/^camera\.x\+=\(-target-camera\.x\)\*0\.1f$/, /^camera\.x=camera\.x\+\(-target-camera\.x\)\*0\.1f$/, /^render->camera\.x\+=\(-target-render->camera\.x\)\*0\.1f$/], "Lerp. (Recuerda que camera.x debería ser float para movimientos pequeños).", { sol: "camera.x += (-target - camera.x) * 0.1f;", ph: "camera.x += ..." }),
       test("¿Qué es una deadzone de cámara?", ["Un sitio donde mueres", "Un rectángulo central donde el jugador se mueve sin que la cámara se mueva", "El borde del mapa", "El HUD"], 1, ""),
       test("¿Dónde guardas el sentido (izquierda/derecha) para el flip del sprite?", ["En la animación", "En el jugador: se actualiza solo cuando hay input horizontal (si no, conserva el último)", "En la cámara", "En Box2D"], 1, "")
     ]

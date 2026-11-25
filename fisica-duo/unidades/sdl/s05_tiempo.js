@@ -10,7 +10,7 @@
     ],
     preguntas: [
       test("Un frame dura 20 ms. ¿FPS?", ["20", "50", "60", "200"], 1, "1000 / 20 = 50.", { nuevo: true }),
-      escribe("Escribe la duración máxima de un frame en ms para `targetFps` (float).", [/^1000(\.0f?|f)?\/targetFps$/], "60 fps → 16,67 ms.", { ph: "1000.0f / ..." }),
+      escribe("Escribe la duración máxima de un frame en ms para `targetFps` (float).", [/^1000(\.0f?|f)?\/targetFps$/], "60 fps → 16,67 ms.", { sol: "1000.0f / targetFps", ph: "1000.0f / ..." }),
       huecos("Timer::ReadSec.", String.raw`float Timer::ReadSec() const
 {
     return (SDL_GetTicks() - ▢) / ▢;
@@ -26,7 +26,7 @@
       test("Diferencia entre SDL_Delay y SDL_DelayPrecise:", ["Ninguna", "SDL_Delay duerme en ms y puede pasarse; SDL_DelayPrecise espera activamente al final y es más exacto (gasta algo de CPU)", "DelayPrecise es para audio", "SDL_Delay no existe en SDL3"], 1, ""),
       test("¿Qué hace el VSYNC (`SDL_SetRenderVSync(renderer, 1)`)?", ["Más fps", "RenderPresent espera al refresco del monitor: limita los fps a los Hz de la pantalla y evita el tearing", "Nada", "Baja la resolución"], 1, "Con VSYNC activo, un 144 Hz va a 144 fps: por eso necesitas dt igualmente."),
       test("El jugador se mueve 4 px por frame. A 30 fps y a 144 fps…", ["va igual", "va casi 5 veces más rápido a 144", "va más rápido a 30", "no se mueve"], 1, "Por eso se multiplica por dt."),
-      escribe("Escribe cómo mueves `x` con `speed` (px/s) si `dt` está en milisegundos.", [/^x\+=speed\*dt\/1000(\.0f?|f)?$/, /^x\+=speed\*\(dt\/1000(\.0f?|f)?\)$/, /^x=x\+speed\*dt\/1000(\.0f?|f)?$/], "dt en ms: divide entre 1000 para pasar a segundos.", { ph: "x += ..." }),
+      escribe("Escribe cómo mueves `x` con `speed` (px/s) si `dt` está en milisegundos.", [/^x\+=speed\*dt\/1000(\.0f?|f)?$/, /^x\+=speed\*\(dt\/1000(\.0f?|f)?\)$/, /^x=x\+speed\*dt\/1000(\.0f?|f)?$/], "dt en ms: divide entre 1000 para pasar a segundos.", { sol: "x += speed * dt / 1000.0f;", ph: "x += ..." }),
       bug("El jugador sale disparado nada más empezar a moverse.", [
         "float speed = 200.0f;          // px/s",
         "position.x += speed * dt;      // dt = 16.6 (ms)"], 1, "Mezcla px/s con ms: va 1000 veces demasiado rápido. Usa `dt / 1000.0f` o una velocidad en px/ms (0.2)."),

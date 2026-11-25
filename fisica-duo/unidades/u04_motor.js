@@ -48,7 +48,7 @@ DrawTexturePro(tex, src, dst, origin, body->GetRotation() * ▢, WHITE);`, ["2.0
         "No se libera la textura cargada en Start: falta `UnloadTexture(car_tex);` antes del return. Todo Load tiene su Unload."),
       test("¿Qué hace `TextFormat(\"Lap %d/%d\", lap, 3)`?", ["Dibuja texto", "Construye el texto \"Lap 1/3\" sustituyendo cada %d por un entero", "Lee un archivo", "Formatea el disco"], 1, "`%d` entero, `%.2f` decimal con 2 cifras, `%s` texto. Luego se pasa a DrawText."),
       escribe("Escribe la llamada que dibuja con DrawText el tiempo `t` (double) con 2 decimales, en (20, 50), tamaño 24, color WHITE. Usa TextFormat.", [/^DrawText\(TextFormat\("[^"]*%\.2f[^"]*",t\),20,50,24,WHITE\)$/],
-        "`DrawText(TextFormat(\"Time %.2f\", t), 20, 50, 24, WHITE);`", { ph: "DrawText(TextFormat(..." }),
+        "`DrawText(TextFormat(\"Time %.2f\", t), 20, 50, 24, WHITE);`", { sol: "DrawText(TextFormat(\"Time %.2f\", t), 20, 50, 24, WHITE)", ph: "DrawText(TextFormat(..." }),
       test("¿Dónde dibujas el HUD para que no se mueva con la cámara (Camera2D)?", ["Dentro de BeginMode2D/EndMode2D", "Después de EndMode2D", "En Start", "En CleanUp"], 1, "Lo de dentro de BeginMode2D se mueve con la cámara; lo de fuera queda fijo en pantalla."),
       test("¿Qué pasa si una función de un módulo devuelve `UPDATE_STOP`?", ["Se pausa", "El juego termina limpiamente: se llama a CleanUp de todos los módulos", "Se reinicia la carrera", "Nada"], 1, "Por ejemplo, al pulsar ESC."),
       test("¿Qué hace `LOG(\"Speed %f\", s)` en el handout?", ["Dibuja en pantalla", "Escribe un mensaje de depuración con archivo y línea", "Cierra el juego", "Guarda en disco"], 1, "Úsalo para comprobar valores (velocidad, checkpoint siguiente…) sin poner breakpoints.")

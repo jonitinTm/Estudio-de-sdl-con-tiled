@@ -23,7 +23,7 @@
         "    if (state_timer.ReadSec() >= 3.0)",
         "        ChangeState(GameState::RACING);",
         "    break;"], ""),
-      escribe("Escribe el número que se muestra en la cuenta atrás (3, 2, 1) como int, usando `state_timer.ReadSec()`.", [/^3-\(int\)state_timer\.ReadSec\(\)$/, /^3-static_cast<int>\(state_timer\.ReadSec\(\)\)$/], "`3 - (int)state_timer.ReadSec()` → 3, 2, 1 durante cada segundo.", { ph: "3 - ..." }),
+      escribe("Escribe el número que se muestra en la cuenta atrás (3, 2, 1) como int, usando `state_timer.ReadSec()`.", [/^3-\(int\)state_timer\.ReadSec\(\)$/, /^3-static_cast<int>\(state_timer\.ReadSec\(\)\)$/], "`3 - (int)state_timer.ReadSec()` → 3, 2, 1 durante cada segundo.", { sol: "3 - (int)state_timer.ReadSec()", ph: "3 - ..." }),
       bug("Al pausar, el cronómetro de vuelta sigue contando. ¿Qué falta?", [
         "case GameState::RACING:",
         "    if (IsKeyPressed(KEY_P)) ChangeState(GameState::PAUSED);",

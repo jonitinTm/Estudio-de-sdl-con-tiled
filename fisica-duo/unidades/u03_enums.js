@@ -68,7 +68,7 @@
         "    break;",
         "}"], "Cada estado decide sus parámetros y cuándo salir. El timer se reinicia dentro de ChangeState."),
       escribe("Escribe la condición: ha pasado más de 1.5 segundos desde que arrancó el `Timer` llamado `state_timer` (tiene `ReadSec()`).", [/^state_timer\.ReadSec\(\)>1\.5f?$/, /^state_timer\.ReadSec\(\)>=1\.5f?$/, /^1\.5f?<state_timer\.ReadSec\(\)$/],
-        "`state_timer.ReadSec() > 1.5`.", { ph: "state_timer..." }),
+        "`state_timer.ReadSec() > 1.5`.", { sol: "state_timer.ReadSec() > 1.5f", ph: "state_timer..." }),
       test("¿Cuánto vale `1 << 3`?", ["3", "4", "8", "13"], 2, "Desplazar 1 tres posiciones: binario 1000 = 8. Así se crean flags de un solo bit.", { nuevo: true }),
       test("`mask = CAT_WALL | CAT_CAR;` con `CAT_WALL = 1` y `CAT_CAR = 2`. ¿Cuánto vale `mask`?", ["1", "2", "3", "0"], 2, "OR de bits: 01 | 10 = 11 = 3. La máscara “contiene” las dos categorías."),
       escribe("Escribe la condición que comprueba si `mask` contiene el bit `CAT_CAR`.", ["(mask & CAT_CAR) != 0", "mask & CAT_CAR", "(mask&CAT_CAR)", "(mask & CAT_CAR) == CAT_CAR"],

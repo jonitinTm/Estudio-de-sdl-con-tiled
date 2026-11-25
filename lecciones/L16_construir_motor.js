@@ -1,14 +1,14 @@
 (function () {
   const { code, nota, quiz } = Curso;
   Curso.leccion({
-    id: "l13", num: "13", grupo: "Bloque 7 · Construye el plataformas paso a paso", corto: "Plataformas I: el motor",
+    id: "l13", num: "16", grupo: "Bloque 8 · Construye el plataformas paso a paso", corto: "Plataformas I: el motor",
     titulo: "Construye el plataformas I: el motor",
     resumen: "Fases 0–4: proyecto con CMake y vcpkg, utilidades, Engine y módulos, config.xml, ventana, teclado, render, texturas y audio.",
     intro: "Empiezas con una carpeta vacía. Al acabar esta lección tienes un motor propio (el mismo que el de clase, con SDL3) que abre una ventana, lee config.xml, controla los fps, lee el teclado, dibuja y suena.",
     objetivos: ["Crear un proyecto SDL3 con CMake y vcpkg", "Escribir el Engine y el ciclo de vida de los módulos", "Leer la configuración de config.xml", "Dibujar, cargar texturas y reproducir sonidos con SDL3"],
     html: () => `
 
-<p>En las lecciones 01–12 has visto cada pieza por separado. En este bloque las juntas todas y construyes <strong>un juego de plataformas completo, desde una carpeta vacía</strong>: el caballero de tu SandKnight corriendo por un nivel de Tiled, monedas, slimes que te persiguen con pathfinding, vidas, checkpoints, meta, pantalla de título, game over, guardar/cargar y teclas de debug.</p>
+<p>En las lecciones 01–15 has visto cada pieza por separado. En este bloque las juntas todas y construyes <strong>un juego de plataformas completo, desde una carpeta vacía</strong>: el caballero de tu SandKnight corriendo por un nivel de Tiled, monedas, slimes que te persiguen con pathfinding, vidas, checkpoints, meta, pantalla de título, game over, guardar/cargar y teclas de debug.</p>
 <figure style="margin:16px 0"><img src="plataformas/docs/inicio.jpg" alt="El juego terminado" style="width:100%;border-radius:6px;border:1px solid var(--line)"><figcaption style="font-size:.82rem;color:var(--ink-3);margin-top:4px">El juego terminado (captura real del juego compilado)</figcaption></figure>
 ${nota(`<p>Todo el código de esta guía viene de un proyecto que he <strong>compilado y ejecutado</strong> con SDL3, SDL3_image, Box2D 3.1 y pugixml. Además tiene una prueba automática que <strong>juega sola</strong> y comprueba 16 cosas (que el salto funciona, que el agua quita una vida, que el pisotón mata al slime…): las 16 pasan, sin errores de memoria. El proyecto completo está en la carpeta <code>plataformas/</code> del repositorio.</p>`, "", "Código verificado")}
 
@@ -22,9 +22,9 @@ ${nota(`<p>Todo el código de esta guía viene de un proyecto que he <strong>com
 
 <h3>El mapa de la construcción</h3>
 <div class="table-wrap"><table class="t"><thead><tr><th>Lección</th><th>Fases</th><th>Al terminar verás</th></tr></thead><tbody>
-<tr><td><strong>13 · El motor</strong></td><td>0 Proyecto · 1 Utilidades · 2 Engine y Module · 3 Ventana, input y render · 4 Texturas y audio</td><td>Una ventana con el color del cielo que se cierra con Esc</td></tr>
-<tr><td>14 · El mundo</td><td>5 Mapa TMX · 6 Física Box2D · 7 Entidades y animaciones · 8 El jugador</td><td>El caballero corriendo y saltando por el nivel</td></tr>
-<tr><td>15 · El juego</td><td>9 Monedas · 10 Slimes con pathfinding · 11 Escena: estados, cámara, HUD · 12 Guardar, cargar y debug</td><td>El juego completo</td></tr>
+<tr><td><strong>16 · El motor</strong></td><td>0 Proyecto · 1 Utilidades · 2 Engine y Module · 3 Ventana, input y render · 4 Texturas y audio</td><td>Una ventana con el color del cielo que se cierra con Esc</td></tr>
+<tr><td>17 · El mundo</td><td>5 Mapa TMX · 6 Física Box2D · 7 Entidades y animaciones · 8 El jugador</td><td>El caballero corriendo y saltando por el nivel</td></tr>
+<tr><td>18 · El juego</td><td>9 Monedas · 10 Slimes con pathfinding · 11 Escena: estados, cámara, HUD · 12 Guardar, cargar y debug</td><td>El juego completo</td></tr>
 </tbody></table></div>
 
 <h3>El esquema del motor</h3>
@@ -535,7 +535,7 @@ ${nota(`<p>Con todos los módulos comentados, el programa arranca, no encuentra 
 <h2 id="pfase3">Fase 3 · config.xml, ventana, teclado y render</h2>
 
 <h3>config.xml</h3>
-<p>Créalo en la raíz del proyecto (junto a <code>CMakeLists.txt</code>). Es el archivo completo del juego: las partes de <code>scene</code> se usan a partir de la lección 14.</p>
+<p>Créalo en la raíz del proyecto (junto a <code>CMakeLists.txt</code>). Es el archivo completo del juego: las partes de <code>scene</code> se usan a partir de la lección 17.</p>
 ${code(String.raw`
 <!-- Config file for the engine: change values here, no need to recompile -->
 <config>
@@ -1041,7 +1041,7 @@ bool Audio::CleanUp()
 <li>Sin tarjeta de sonido el juego sigue funcionando: <code>Awake</code> devuelve <code>true</code> igualmente.</li>
 <li>Para música en MP3/OGG necesitarías SDL3_mixer; con WAV en bucle también se puede hacer (es un buen ejercicio).</li>
 </ul>
-<p>Por último, para probar que todo va, crea una <code>Scene</code> mínima que pinte el fondo y cierre con Esc. En la lección 15 la sustituirás por la completa:</p>
+<p>Por último, para probar que todo va, crea una <code>Scene</code> mínima que pinte el fondo y cierre con Esc. En la lección 18 la sustituirás por la completa:</p>
 ${code(String.raw`
 // Scene.h (versión mínima de prueba)
 #pragma once
@@ -1074,7 +1074,7 @@ bool Scene::PostUpdate()
     return true;
 }`, "cpp", "Scene mínima (temporal)")}
 
-${nota(`<p>La ventana es azul cielo, se cierra con <kbd>Esc</kbd> o con la X, y la consola no muestra errores. <strong>Tu motor funciona.</strong> En la lección 14 le pones un mundo dentro.</p>`, "game", "Compila y comprueba")}
+${nota(`<p>La ventana es azul cielo, se cierra con <kbd>Esc</kbd> o con la X, y la consola no muestra errores. <strong>Tu motor funciona.</strong> En la lección 17 le pones un mundo dentro.</p>`, "game", "Compila y comprueba")}
 ${nota(`<p><strong>“Scene no tiene miembro…”</strong> o errores en Engine.cpp con módulos que todavía no existen (Map, Physics, EntityManager): déjalos comentados hasta su fase.</p>`, "warn", "Si no funciona")}
 <h2>Archivos de esta lección</h2><details class="reto"><summary><span>Archivo completo</span>Engine.h</summary>${code(String.raw`
 #pragma once

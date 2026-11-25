@@ -24,7 +24,7 @@ frontier.pop();`, ["greater", "top", "less", "front", "back"], ["greater", "top"
         "}"], ""),
       test("Camino A: 4 casillas de hierba (coste 1). Camino B: 2 casillas de agua (coste 5). ¿Cuál elige Dijkstra?", ["B (menos pasos)", "A (coste 4 frente a 10)", "Los dos", "Ninguno"], 1, ""),
       test("¿Qué es una heurística en A*?", ["El coste real", "Una estimación de lo que falta hasta la meta; guía la búsqueda hacia ella", "Una casilla bloqueada", "La cola"], 1, ""),
-      escribe("Escribe la distancia Manhattan entre `a` y `b` (Vector2D, usa abs, getX, getY).", [/^abs\(a\.getX\(\)-b\.getX\(\)\)\+abs\(a\.getY\(\)-b\.getY\(\)\)$/, /^std::abs\(a\.getX\(\)-b\.getX\(\)\)\+std::abs\(a\.getY\(\)-b\.getY\(\)\)$/, /^fabs\(a\.getX\(\)-b\.getX\(\)\)\+fabs\(a\.getY\(\)-b\.getY\(\)\)$/, /^fabsf\(a\.getX\(\)-b\.getX\(\)\)\+fabsf\(a\.getY\(\)-b\.getY\(\)\)$/], "", { ph: "abs(...) + abs(...)" }),
+      escribe("Escribe la distancia Manhattan entre `a` y `b` (Vector2D, usa abs, getX, getY).", [/^abs\(a\.getX\(\)-b\.getX\(\)\)\+abs\(a\.getY\(\)-b\.getY\(\)\)$/, /^std::abs\(a\.getX\(\)-b\.getX\(\)\)\+std::abs\(a\.getY\(\)-b\.getY\(\)\)$/, /^fabs\(a\.getX\(\)-b\.getX\(\)\)\+fabs\(a\.getY\(\)-b\.getY\(\)\)$/, /^fabsf\(a\.getX\(\)-b\.getX\(\)\)\+fabsf\(a\.getY\(\)-b\.getY\(\)\)$/], "", { sol: "abs(a.getX() - b.getX()) + abs(a.getY() - b.getY())", ph: "abs(...) + abs(...)" }),
       huecos("Prioridad en A*.", String.raw`int newCost = costSoFar[current] + MovementCost(n);
 int priority = newCost ▢ Heuristic(n, ▢);
 frontier.push({ priority, n });`, ["+", "goal", "-", "start", "*"], ["+", "goal"], "f = g + h."),

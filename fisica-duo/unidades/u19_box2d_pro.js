@@ -37,7 +37,7 @@ public:
     hit = true; point = p;
     return fraction;
 }`, ["IsSensor", "-1.0f", "0.0f", "1.0f", "GetBody"], ["IsSensor", "-1.0f"], ""),
-      escribe("Escribe la cabecera del for que recorre todos los cuerpos del mundo `world` (variable `b`).", [/^for\(b2Body\*b=world->GetBodyList\(\);b;b=b->GetNext\(\)\)\{?$/, /^for\(b2Body\*b=world->GetBodyList\(\);b!=nullptr;b=b->GetNext\(\)\)\{?$/, /^for\(b2Body\*b=world->GetBodyList\(\);b!=NULL;b=b->GetNext\(\)\)\{?$/], "Lista enlazada: GetBodyList y GetNext.", { ph: "for (b2Body* b = ..." }),
+      escribe("Escribe la cabecera del for que recorre todos los cuerpos del mundo `world` (variable `b`).", [/^for\(b2Body\*b=world->GetBodyList\(\);b;b=b->GetNext\(\)\)\{?$/, /^for\(b2Body\*b=world->GetBodyList\(\);b!=nullptr;b=b->GetNext\(\)\)\{?$/, /^for\(b2Body\*b=world->GetBodyList\(\);b!=NULL;b=b->GetNext\(\)\)\{?$/], "Lista enlazada: GetBodyList y GetNext.", { sol: "for (b2Body* b = world->GetBodyList(); b; b = b->GetNext())", ph: "for (b2Body* b = ..." }),
       bug("Crash al destruir cuerpos recorriendo la lista.", [
         "for (b2Body* b = world->GetBodyList(); b; b = b->GetNext())",
         "    if (IsDead(b)) world->DestroyBody(b);"], 0, "Tras DestroyBody(b), b->GetNext() lee memoria liberada. Guarda `b2Body* next = b->GetNext();` antes de destruir."),

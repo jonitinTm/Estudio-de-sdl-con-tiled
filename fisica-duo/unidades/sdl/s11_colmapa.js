@@ -27,7 +27,7 @@ PhysBody* c = physics->CreateRectangle(pos.getX() + tw ▢ 2, pos.getY() + th / 
         "case ColliderType::SPIKES:",
         "    lives--;",
         "    break;"], 1, "Mientras sigas tocándolos pueden llegar más contactos, y el siguiente salto vuelve a tocarlos. Añade invulnerabilidad: `if (!invulnerable) { lives--; invulnerable = true; invTimer.Start(); }` y quítala tras 0,5–1 s."),
-      escribe("Escribe la condición para quitar la invulnerabilidad tras 1 segundo (`invTimer.ReadSec()`).", [/^if\(invulnerable&&invTimer\.ReadSec\(\)>=?1(\.0f?|f)?\)(invulnerable=false)?$/, /^if\(invTimer\.ReadSec\(\)>=?1(\.0f?|f)?\)(invulnerable=false)?$/], "", { ph: "if (invulnerable && ...)" }),
+      escribe("Escribe la condición para quitar la invulnerabilidad tras 1 segundo (`invTimer.ReadSec()`).", [/^if\(invulnerable&&invTimer\.ReadSec\(\)>=?1(\.0f?|f)?\)(invulnerable=false)?$/, /^if\(invTimer\.ReadSec\(\)>=?1(\.0f?|f)?\)(invulnerable=false)?$/], "", { sol: "if (invulnerable && invTimer.ReadSec() >= 1.0f) invulnerable = false;", ph: "if (invulnerable && ...)" }),
       test("¿Qué es el god mode típico de las entregas (F10)?", ["Más vidas", "Volar sin gravedad y sin morir: gravityScale 0 y se ignoran SPIKES/DEATH", "Más velocidad", "Saltar más"], 1, ""),
       huecos("God mode.", String.raw`if (input->GetKey(SDL_SCANCODE_F10) == KEY_DOWN) godMode = ▢godMode;
 b2Body_SetGravityScale(pbody->body, godMode ? ▢ : 1.0f);`, ["!", "0.0f", "-", "2.0f", "~"], ["!", "0.0f"], ""),

@@ -1,7 +1,7 @@
 (function () {
   const { code, nota, quiz } = Curso;
   Curso.leccion({
-    id: "l15", num: "15", grupo: "Bloque 7 · Construye el plataformas paso a paso", corto: "Plataformas III: el juego",
+    id: "l15", num: "18", grupo: "Bloque 8 · Construye el plataformas paso a paso", corto: "Plataformas III: el juego",
     titulo: "Construye el plataformas III: el juego",
     resumen: "Fases 9–12: monedas, slimes con pathfinding BFS, estados de la partida, cámara, checkpoints, HUD, guardar/cargar y teclas de debug.",
     intro: "Conviertes la demo en un juego: cosas que coger, enemigos que te persiguen, pantalla de título, checkpoints, meta, game over, marcador, guardar partida y las teclas de debug que piden en las entregas.",

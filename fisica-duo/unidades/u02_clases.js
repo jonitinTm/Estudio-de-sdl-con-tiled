@@ -51,7 +51,7 @@ protected:
         "Polimorfismo: es la razón de que todo herede de una base con `virtual void Update()`.", { code: String.raw`for (PhysicEntity* e : entities)
     e->Update();` }),
       escribe("Declara en la clase base una función virtual pura `Update` que no recibe nada y no devuelve nada.", [/^virtualvoidUpdate\(\)=0$/],
-        "`virtual void Update() = 0;`", { ph: "virtual ..." }),
+        "`virtual void Update() = 0;`", { sol: "virtual void Update() = 0", ph: "virtual ..." }),
       test("¿Qué hace `dynamic_cast<Car*>(entity)` si `entity` apunta a un Checkpoint?", ["Lo convierte igualmente", "Devuelve nullptr", "Crashea siempre", "Devuelve el Checkpoint"], 1,
         "dynamic_cast comprueba el tipo real en ejecución. Útil en OnCollision: `Car* car = dynamic_cast<Car*>(...)` y luego `if (car != nullptr)`. (La clase debe tener alguna función virtual)."),
       orden("Construye la clase base abstracta de todo lo que tiene cuerpo físico.", [

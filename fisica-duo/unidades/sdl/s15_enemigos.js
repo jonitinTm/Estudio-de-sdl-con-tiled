@@ -17,7 +17,7 @@
       bug("El enemigo tiembla a izquierda y derecha al llegar a una casilla.", [
         "float dx = targetX - position.getX();",
         "v.x = (dx > 0) ? speed : -speed;"], 1, "Sin margen nunca está exactamente en 0: añade una zona muerta `(dx > 2) ? speed : (dx < -2) ? -speed : 0`."),
-      escribe("Escribe la distancia entre el enemigo (`position`) y el jugador (`p`) con sqrtf (Vector2D con getX/getY).", [/^sqrtf\(\(p\.getX\(\)-position\.getX\(\)\)\*\(p\.getX\(\)-position\.getX\(\)\)\+\(p\.getY\(\)-position\.getY\(\)\)\*\(p\.getY\(\)-position\.getY\(\)\)\)$/, /^sqrtf\(\(position\.getX\(\)-p\.getX\(\)\)\*\(position\.getX\(\)-p\.getX\(\)\)\+\(position\.getY\(\)-p\.getY\(\)\)\*\(position\.getY\(\)-p\.getY\(\)\)\)$/], "Para comparar con un radio basta comparar distancias al cuadrado (sin sqrt), que es más barato.", { ph: "sqrtf(...)" }),
+      escribe("Escribe la distancia entre el enemigo (`position`) y el jugador (`p`) con sqrtf (Vector2D con getX/getY).", [/^sqrtf\(\(p\.getX\(\)-position\.getX\(\)\)\*\(p\.getX\(\)-position\.getX\(\)\)\+\(p\.getY\(\)-position\.getY\(\)\)\*\(p\.getY\(\)-position\.getY\(\)\)\)$/, /^sqrtf\(\(position\.getX\(\)-p\.getX\(\)\)\*\(position\.getX\(\)-p\.getX\(\)\)\+\(position\.getY\(\)-p\.getY\(\)\)\*\(position\.getY\(\)-p\.getY\(\)\)\)$/], "Para comparar con un radio basta comparar distancias al cuadrado (sin sqrt), que es más barato.", { sol: "sqrtf((p.getX() - position.getX()) * (p.getX() - position.getX()) + (p.getY() - position.getY()) * (p.getY() - position.getY()))", ph: "sqrtf(...)" }),
       test("¿Cómo detectas que el jugador ha pisado al enemigo (y no que le ha tocado de lado)?", ["Por la velocidad", "Los pies del jugador están por encima del centro del enemigo en el momento del contacto", "Con un raycast siempre", "No se puede"], 1, "Es más fiable que mirar la velocidad, que Box2D ya ha cambiado al resolver el choque."),
       orden("Pisotear a un enemigo.", [
         "case ColliderType::ENEMY:",
@@ -38,7 +38,24 @@
       test("¿Qué es una patrulla entre dos puntos?", ["Persecución", "Moverse a un lado hasta llegar a un límite (o a un borde/pared) y dar la vuelta", "Quedarse quieto", "Saltar"], 1, ""),
       test("El enemigo cae por los bordes de las plataformas al patrullar. ¿Solución?", ["Más gravedad", "Comprobar si la casilla de delante y abajo es sólida; si no, dar la vuelta", "Hacerlo estático", "Ignorarlo"], 1, ""),
       escribe("Escribe la línea que invierte la dirección (`dir` vale 1 o -1).", ["dir = -dir", "dir *= -1", "dir = dir * -1"], "", { ph: "dir = ..." }),
-      test("En debug (F9), ¿qué conviene dibujar del enemigo?", ["Nada", "Su camino (casillas del path) y su radio de visión", "Solo el sprite", "El HUD"], 1, "Ver lo que piensa la IA ahorra horas.")
+      test("En debug (F9), ¿qué conviene dibujar del enemigo?", ["Nada", "Su camino (casillas del path) y su radio de visión", "Solo el sprite", "El HUD"], 1, "Ver lo que piensa la IA ahorra horas."),
+      test("En el handout L14, PropagateAStar hace una expansión por llamada. ¿Cómo lo usas en el juego?", ["Una vez por frame", "Una función FindPath que la llama en bucle hasta encontrar camino, vaciar la frontera o pasar un límite", "Con la tecla B", "No se usa"], 1, "Tu juego no pulsa teclas.", { nuevo: true }),
+      huecos("FindPath con presupuesto.", String.raw`for (int i = 0; i < maxIterations; ++i)
+{
+    if (!pathTiles.▢()) return true;
+    if (frontierAStar.empty()) return ▢;
+    PropagateAStar(h);
+}`, ["empty", "false", "size", "true", "clear"], ["empty", "false"], "El límite evita congelar el juego si el jugador es inalcanzable."),
+      test("Los dos enemigos que pide el handout:", ["Uno que dispara y uno que salta", "Un volador que va libre hacia el jugador y uno terrestre que va por las plataformas con gravedad (y puede caer)", "Dos iguales", "Un jefe y un minion"], 1, ""),
+      escribe("Escribe la línea (Box2D 3) que quita la gravedad al cuerpo del volador `pbody->body`.", ["b2Body_SetGravityScale(pbody->body, 0.0f)", "b2Body_SetGravityScale(pbody->body, 0)"], "", { ph: "b2Body_SetGravityScale(..." }),
+      test("¿Qué casilla es transitable para el terrestre?", ["Cualquiera vacía", "Vacía y con una casilla sólida justo debajo", "Cualquiera", "Las sólidas"], 1, ""),
+      test("¿Qué tres estados pide restringir el handout?", ["IDLE, RUN, JUMP", "Patrulla por defecto, persecución al verte y volver a patrullar si escapas", "SAVE, LOAD, PLAY", "BFS, Dijkstra, A*"], 1, ""),
+      bug("El terrestre flota al salir de una plataforma persiguiéndote.", [
+        "float dx = tx - position.getX();",
+        "b2Vec2 v = { (dx > 2.0f) ? walkSpeed : (dx < -2.0f) ? -walkSpeed : 0.0f, 0.0f };",
+        "b2Body_SetLinearVelocity(pbody->body, v);"], 1, "Pones v.y = 0 cada frame. Parte de `b2Body_GetLinearVelocity` y cambia solo v.x."),
+      test("¿Qué te pide el handout además del código?", ["Nada", "Apuntar cada decisión y su porqué (diario de decisiones)", "Un vídeo", "Un examen"], 1, "Trabajar por etapas y justificar las soluciones elegidas."),
+      test("¿Cuál es la mejor herramienta para depurar a los enemigos?", ["Breakpoints en cada frame", "DrawPath / debug draw: ver visited, frontera, camino y radio de visión", "Bajar los fps", "Comentar código"], 1, "")
     ]
   });
 })();

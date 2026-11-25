@@ -198,6 +198,11 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 .panel textarea { width: 100%; min-height: 90px; font-family: var(--mono); font-size: .75rem; border-radius: 12px; border: 2px solid var(--line); background: var(--bg-2); color: var(--ink); padding: 10px; overflow-wrap: anywhere; }
 .panel .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
 .panel p { color: var(--ink-2); font-size: .92rem; }
+.chuleta-pop { position: absolute; inset: 0; z-index: 5; background: var(--bg); overflow-y: auto; padding-top: calc(env(safe-area-inset-top, 0px) + 10px); }
+.chpop-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--line); position: sticky; top: 0; background: var(--bg); padding-top: 6px; }
+.qunit { color: var(--ink-3); text-transform: none; letter-spacing: 0; font-weight: 700; }
+.qcaja { color: var(--green); letter-spacing: 1px; font-size: .7rem; margin-left: 4px; }
+.lesson-top .icon-btn { padding: 2px 8px; font-size: .95rem; }
 .kbd { font-size: .78rem; color: var(--ink-3); text-align: center; margin: 14px 0 0; }
 @media (hover: none) { .kbd { display: none; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -256,7 +261,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 
   // ---------- almacenamiento ----------
   const KEY = "box2dduo.v1";
-  let S = { xp: 0, racha: 0, ultimoDia: "", hechas: {}, falladas: {}, vistas: {}, aciertos: {}, diaXp: { d: "", xp: 0 }, ok: 0, total: 0, t: 0 };
+  let S = { xp: 0, racha: 0, ultimoDia: "", hechas: {}, falladas: {}, vistas: {}, aciertos: {}, srs: {}, diaXp: { d: "", xp: 0 }, ok: 0, total: 0, t: 0 };
   const META = 50; // XP diaria
   try { const v = JSON.parse(localStorage.getItem(KEY)); if (v) S = Object.assign(S, v); } catch (e) {}
   const guardar = () => { S.t = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} nube.programar(); };
@@ -272,6 +277,8 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
     r.hechas = Object.assign({}, a.hechas); for (const k in b.hechas || {}) r.hechas[k] = Math.max(r.hechas[k] || 0, b.hechas[k]);
     r.vistas = Object.assign({}, a.vistas, b.vistas);
     r.aciertos = Object.assign({}, a.aciertos, b.aciertos);
+    r.srs = Object.assign({}, a.srs || {});
+    for (const k in b.srs || {}) if (!r.srs[k] || (b.srs[k][2] || 0) > (r.srs[k][2] || 0)) r.srs[k] = b.srs[k];
     r.falladas = Object.assign({}, nueva.falladas || {});
     const da = a.diaXp || {}, dbb = b.diaXp || {};
     r.diaXp = da.d === dbb.d ? { d: da.d, xp: Math.max(da.xp || 0, dbb.xp || 0) } : (da.d > dbb.d ? da : dbb);
@@ -346,6 +353,20 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
     return String(s).split(/```/).map((part, i) => i % 2 ? codeHTML(part) : esc(part).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>")).join("");
   }
   const hoy = () => new Date().toISOString().slice(0, 10);
+  // ---------- repetición espaciada (cajas de Leitner) ----------
+  // srs[id] = [caja 0..6, día en que toca repasar, marca de tiempo]
+  const INTERVALOS = [1, 1, 3, 7, 14, 30, 60];   // días hasta el siguiente repaso según la caja
+  const enDias = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  function srsRespuesta(id, ok) {
+    const prev = S.srs[id] || [0, hoy(), 0];
+    const caja = ok ? Math.min(6, prev[0] + 1) : 0;
+    S.srs[id] = [caja, enDias(INTERVALOS[caja]), Date.now()];
+  }
+  function pendientesHoy() {
+    const mis = new Set(delCurso().map((u) => u.id)), d = hoy();
+    return Object.keys(S.srs).filter((k) => mis.has(k.split(":")[0]) && S.srs[k][1] <= d);
+  }
+  const unidadDe = (id) => unidades.find((u) => u.id === String(id).split(":")[0]);
   const colores = ["#58a700", "#1a8fd6", "#ce6a00", "#8a4fd8", "#d8326e", "#0f9c8c", "#c0392b", "#2f6fd1", "#7a8f00", "#a3489c", "#0b8fb0", "#b35c00", "#4d7c0f", "#5b5bd6", "#b0306a", "#127a6a"];
   const LPL = 8; // preguntas nuevas por lección
 
@@ -367,7 +388,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
     const sw = CURSOS.map((c) => { const n = unidades.filter((u) => u.curso === c.id); return `<button type="button" class="curso-btn ${c.id === cur ? "on" : ""}" data-curso="${c.id}" aria-pressed="${c.id === cur}">${esc(c.nombre)}<small>${n.length} unidades · ${n.reduce((a, u) => a + u.preguntas.length, 0)} ejercicios</small></button>`; }).join("");
     let html = `<section class="intro"><div class="cursos">${sw}</div><h1>${esc(C.h1)}</h1>
       <p>${total} ${esc(C.p)} Lecciones de 5 minutos: lee el código, complétalo, ordénalo, encuentra el bug.</p>
-      ${metaHTML()}<div class="repaso">${nFall ? `<button type="button" class="btn go" data-repaso>Repasar mis ${nFall} fallos</button>` : ""}<button type="button" class="btn" data-mezcla>Lección aleatoria</button></div></section>`;
+      ${metaHTML()}<div class="repaso">${pendientesHoy().length ? `<button type="button" class="btn go" data-srs>Repaso del día (${pendientesHoy().length})</button>` : ""}${nFall ? `<button type="button" class="btn ${pendientesHoy().length ? "" : "go"}" data-repaso>Repasar mis ${nFall} fallos</button>` : ""}<button type="button" class="btn" data-mezcla>Lección aleatoria</button></div></section>`;
     delCurso().forEach((u, num) => {
       const ui = unidades.indexOf(u);
       const n = Math.ceil(u.preguntas.length / LPL), hechas = S.hechas[u.id] || 0;
@@ -406,6 +427,11 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       const qs = baraja(ids).slice(0, 10).map(buscar).filter(Boolean);
       leccion(qs, { repaso: true });
     }
+    if (t.dataset.srs != null) {
+      // primero los de caja más baja (los que peor sabes)
+      const ids = pendientesHoy().sort((a, b) => S.srs[a][0] - S.srs[b][0]);
+      leccion(ids.slice(0, 12).map(buscar).filter(Boolean), { repaso: true });
+    }
     if (t.dataset.mezcla != null) {
       const todas = []; delCurso().forEach((u) => u.preguntas.forEach((q, i) => todas.push(Object.assign({ _id: u.id + ":" + i }, q))));
       leccion(baraja(todas).slice(0, 10), {});
@@ -431,6 +457,13 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       <div class="lesson-scroll"><div class="wrap panel">
         <div class="done" style="padding-top:0"><div class="big"><div class="box"><span>XP</span><b>${S.xp}</b></div><div class="box"><span>Racha</span><b>${S.racha}</b></div><div class="box"><span>Precisión</span><b>${prec}%</b></div></div></div>
         <p>${nube.activa() ? "☁ Tu progreso se guarda en tu cuenta de Claude: ábrelo desde el móvil o el PC y continúas donde lo dejaste." : "Tu progreso se guarda en este navegador. Abre la web desde claude.ai para guardarlo en tu cuenta, o usa la copia de seguridad."}</p>
+        <h3>Cómo estudiar para aprender más</h3>
+        <ul>
+          <li><b>Primero «Repaso del día»</b>: son los ejercicios que tu memoria está a punto de olvidar. Cada acierto los aleja (1, 3, 7, 14, 30 y 60 días); cada fallo los trae de vuelta mañana. Los puntos ●○ de cada pregunta son su nivel.</li>
+          <li><b>Después, una lección nueva</b> de la ruta. Antes de responder, intenta escribir la respuesta de cabeza: recordar cuesta, y por eso se queda.</li>
+          <li><b>Si dudas, abre 📄</b> la chuleta en mitad de la lección y lee la explicación de cada respuesta, aunque aciertes.</li>
+          <li><b>Pasa lo aprendido a C++</b>: la web del curso tiene la práctica guiada y los TODOs del handout de cada tema.</li>
+        </ul>
         <h3>Dominio por unidad · ${esc(CURSOS.find((c) => c.id === cur).nombre)}</h3><table>${filas}</table>
         <h3>Copia de seguridad</h3>
         <p>Copia este código y guárdalo. Para pasar tu progreso a otro dispositivo, pégalo allí y pulsa «Restaurar» (se suma al progreso que ya haya).</p>
@@ -448,7 +481,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
     let conf = false;
     L.querySelector("#bk-reset").onclick = (e) => {
       if (!conf) { conf = true; e.target.textContent = "¿Seguro? Pulsa otra vez"; return; }
-      S = { xp: 0, racha: 0, ultimoDia: "", hechas: {}, falladas: {}, vistas: {}, aciertos: {}, diaXp: { d: "", xp: 0 }, ok: 0, total: 0, t: 0 };
+      S = { xp: 0, racha: 0, ultimoDia: "", hechas: {}, falladas: {}, vistas: {}, aciertos: {}, srs: {}, diaXp: { d: "", xp: 0 }, ok: 0, total: 0, t: 0 };
       guardar(); cerrar();
     };
   }
@@ -468,12 +501,21 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
     const L = document.getElementById("leccion"); L.hidden = false; document.body.style.overflow = "hidden";
     const total = cola.length;
     let vidas = 5, aciertos = 0, intentos = 0, hechasOk = 0, xp = 0, actual = null, estado = null, racha = 0, mejorRacha = 0;
-    const corregidas = new Set();
+    const corregidas = new Set(), yaVista = new Set();
 
-    L.innerHTML = `<div class="wrap lesson-top"><button type="button" class="close" id="cerrar" aria-label="Salir">✕</button><div class="bar"><span id="lbar"></span></div><span class="hearts" id="vidas"></span></div>
+    L.innerHTML = `<div class="wrap lesson-top"><button type="button" class="close" id="cerrar" aria-label="Salir">✕</button><div class="bar"><span id="lbar"></span></div><button type="button" class="icon-btn" id="ver-chuleta" aria-label="Ver la chuleta de esta unidad" title="Chuleta">📄</button><span class="hearts" id="vidas"></span></div>
+      <div class="chuleta-pop" id="chpop" hidden><div class="wrap"><div class="chpop-head"><b id="chpop-t"></b><button type="button" class="btn small" id="chpop-x">Volver a la pregunta</button></div><div class="chuleta" id="chpop-c"></div></div></div>
       <div class="lesson-scroll"><div class="wrap" id="q"></div></div>
       <div class="sheet" id="sheet"><div class="wrap"><div id="fb"></div><button type="button" class="btn go wide" id="comprobar" disabled>Comprobar</button><p class="kbd">Teclas: 1–9 elegir · Enter comprobar · Esc salir</p></div></div>`;
     L.querySelector("#cerrar").onclick = cerrar;
+    const pop = L.querySelector("#chpop");
+    L.querySelector("#ver-chuleta").onclick = () => {
+      const u = unidadDe(actual && actual._id); if (!u || !u.chuleta) return;
+      L.querySelector("#chpop-t").textContent = "Chuleta · " + u.titulo;
+      L.querySelector("#chpop-c").innerHTML = u.chuleta.map((b) => `<h3>${esc(b[0])}</h3>${rich(b[1])}`).join("");
+      pop.hidden = false; pop.scrollTop = 0;
+    };
+    L.querySelector("#chpop-x").onclick = () => { pop.hidden = true; };
     const Q = L.querySelector("#q"), sheet = L.querySelector("#sheet"), fb = L.querySelector("#fb"), btn = L.querySelector("#comprobar");
 
     function pinta() {
@@ -490,6 +532,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       if (btn.dataset.fase === "seguir") { btn.dataset.fase = ""; return siguiente(); }
       const ok = estado.check();
       intentos++;
+      if (!yaVista.has(actual._id)) { srsRespuesta(actual._id, ok); yaVista.add(actual._id); }
       if (ok) {
         aciertos++; corregidas.add(actual._id); racha++; mejorRacha = Math.max(mejorRacha, racha); xp += 10 + (racha >= 5 ? 5 : racha >= 3 ? 2 : 0); delete S.falladas[actual._id]; S.aciertos[actual._id] = 1; S.ok++;
       } else {
@@ -530,7 +573,9 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
     // ---------- tipos ----------
     function render(q) {
       const etiqueta = { test: "Elige la respuesta", huecos: "Completa el código", orden: "Ordena el código", escribe: "Escríbelo tú", bug: "Encuentra el bug" }[q.t];
-      let h = `<p class="qtype ${q.nuevo ? "nuevo" : ""}">${q.nuevo ? "Concepto nuevo · " : ""}${etiqueta}</p><div class="qtext">${rich(q.p)}</div>`;
+      const uq = unidadDe(q._id);
+      const caja = S.srs[q._id] ? S.srs[q._id][0] : -1;
+      let h = `<p class="qtype ${q.nuevo ? "nuevo" : ""}">${q.nuevo ? "Concepto nuevo · " : ""}${etiqueta}${!ctx.unidad && uq ? ` <span class="qunit">· ${esc(uq.titulo)}</span>` : ""}${caja >= 0 ? ` <span class="qcaja" title="Nivel de memoria de este ejercicio (0–6)">${"●".repeat(caja)}${"○".repeat(6 - caja)}</span>` : ""}</p><div class="qtext">${rich(q.p)}</div>`;
 
       if (q.t === "test") {
         const orden = baraja(q.o.map((_, i) => i));
@@ -592,7 +637,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
         w.oninput = () => listo(w.value.trim().length > 0);
         return {
           check() { const v = norm(w.value); const ok = q.a.some((a) => (a instanceof RegExp ? a.test(v) : v === norm(a))); w.classList.add(ok ? "right" : "wrong"); w.readOnly = true; return ok; },
-          solucion: q.a.some((a) => typeof a === "string") ? () => `<code>${esc(q.a.find((a) => typeof a === "string"))}</code>` : null
+          solucion: (q.sol || q.a.some((a) => typeof a === "string")) ? () => `<code>${esc(q.sol || q.a.find((a) => typeof a === "string"))}</code>` : null
         };
       }
 
@@ -658,7 +703,9 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 <script src="unidades/sdl/s12_animcam.js"></script>
 <script src="unidades/sdl/s13_bfs.js"></script>
 <script src="unidades/sdl/s14_dijkstra.js"></script>
+<script src="unidades/sdl/s14b_astar.js"></script>
 <script src="unidades/sdl/s15_enemigos.js"></script>
+<script src="unidades/sdl/s15b_guardar.js"></script>
 <script src="unidades/sdl/s16_bugs.js"></script>
 </body>
 </html>

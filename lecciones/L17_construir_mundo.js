@@ -1,7 +1,7 @@
 (function () {
   const { code, nota, quiz } = Curso;
   Curso.leccion({
-    id: "l14", num: "14", grupo: "Bloque 7 · Construye el plataformas paso a paso", corto: "Plataformas II: el mundo",
+    id: "l14", num: "17", grupo: "Bloque 8 · Construye el plataformas paso a paso", corto: "Plataformas II: el mundo",
     titulo: "Construye el plataformas II: el mundo",
     resumen: "Fases 5–8: el nivel de Tiled (capas, propiedades, objetos, colliders fusionados), Box2D 3 con eventos, entidades, animaciones TSX y el jugador completo.",
     intro: "Le das un mundo a tu motor: cargas el nivel de Tiled, montas la física con Box2D 3 y programas al caballero con todo lo que hace bueno a un plataformas: tiempo de coyote, salto variable, daño, invulnerabilidad y pisotón.",
@@ -394,7 +394,7 @@ bool Map::IsWalkable(int i, int j) const
 }`, "cpp", "Map.cpp · dibujo con culling, CleanUp y consultas")}
 <ul>
 <li><strong>Culling</strong>: solo se dibujan las casillas que caen dentro de la cámara. El nivel tiene 2200 casillas por capa; en pantalla caben unas 950.</li>
-<li><code>IsWalkable</code>: “casilla vacía con suelo debajo”. Es el grafo de navegación de los slimes (lección 15).</li>
+<li><code>IsWalkable</code>: “casilla vacía con suelo debajo”. Es el grafo de navegación de los slimes (lección 18).</li>
 </ul>
 <p>En la Scene mínima, carga el mapa en <code>Start</code>: <code>Engine::GetInstance().map-&gt;Load("Assets/Maps/", "Level1.tmx");</code> (y descomenta Map en Engine.cpp; los colliders necesitan la física, así que comenta de momento <code>CreateColliders()</code> o haz la fase 6 a la vez).</p>
 
@@ -1426,7 +1426,7 @@ bool Player::CleanUp()
 </ul>
 <p>Para verlo ya, en la Scene mínima crea el jugador en <code>Awake</code> y colócalo en <code>Start</code> (tras cargar el mapa) con el código de la fase 11, o simplemente con <code>player-&gt;position = Vector2D(100, 500);</code>. Necesitarás también los métodos <code>IsPlaying()</code> (que devuelva true) y <code>GetCheckpoint()</code> de la Scene.</p>
 
-${nota(`<p><strong>¡Ya juegas!</strong> El caballero cae sobre el césped, corre con <kbd>A</kbd>/<kbd>D</kbd> o las flechas (girándose), salta con <kbd>Espacio</kbd> (más alto si mantienes) y puede subir a las plataformas. Si cae al agua, vuelve al inicio con una vida menos. La cámara aún no le sigue: llega en la lección 15.</p>`, "game", "Compila y comprueba")}
+${nota(`<p><strong>¡Ya juegas!</strong> El caballero cae sobre el césped, corre con <kbd>A</kbd>/<kbd>D</kbd> o las flechas (girándose), salta con <kbd>Espacio</kbd> (más alto si mantienes) y puede subir a las plataformas. Si cae al agua, vuelve al inicio con una vida menos. La cámara aún no le sigue: llega en la lección 18.</p>`, "game", "Compila y comprueba")}
 ${nota(`<p><strong>Cae a través del suelo</strong>: falta <code>CreateColliders()</code> o la capa no tiene la propiedad <code>Collision</code>. <strong>No salta nunca</strong>: <code>IsOnGround</code> siempre false; revisa el signo de la normal. <strong>Se queda pegado a las paredes</strong>: falta <code>friction = 0</code>. <strong>El dibujo va desplazado respecto a F9</strong>: revisa los números de <code>Draw</code>.</p>`, "warn", "Si no funciona")}
 <h2>Archivos de esta lección</h2><details class="reto"><summary><span>Archivo completo</span>Map.cpp</summary>${code(String.raw`
 #include "Map.h"

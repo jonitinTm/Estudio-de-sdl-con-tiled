@@ -30,7 +30,7 @@ int d = walls->RayCast(x, y, x + (int)(dir.x * 70), y + (int)(dir.y * 70), nx, n
 if (d >= 0) steer ▢ 1.5f * (1.0f - d / 70.0f);`, ["-0.5f", "+=", "0.5f", "-=", "*="], ["-0.5f", "+="], "Muro a la izquierda y cerca → gira a la derecha (steer positivo)."),
       test("¿Qué es el rubber banding?", ["Un joint elástico", "Ajustar la velocidad de los rivales según vayan delante o detrás del jugador", "Un derrape", "Un tipo de sensor"], 1, ""),
       escribe("Escribe la velocidad máxima del rival: `base` multiplicado por 0.9f si va delante del jugador y por 1.05f si no (usa la condición `ahead`).", [/^base\*\(ahead\?0\.9f?:1\.05f?\)$/, /^\(ahead\?0\.9f?:1\.05f?\)\*base$/, /^max_speed=base\*\(ahead\?0\.9f?:1\.05f?\)$/],
-        "Operador ternario: `condición ? a : b`.", { ph: "base * (..." }),
+        "Operador ternario: `condición ? a : b`.", { sol: "base * (ahead ? 0.9f : 1.05f)", ph: "base * (..." }),
       test("¿Qué cambia entre PlayerCar y AICar?", ["Toda la física", "Solo de dónde salen throttle y steer (teclado o IA)", "El tipo de cuerpo", "El filtro"], 1, ""),
       test("¿Cómo pruebas que la IA se recupera si choca?", ["No se puede", "Con F1, arrastrando el rival con el mouse joint a otro sitio", "Recompilando", "Cambiando el mapa"], 1, "")
     ]

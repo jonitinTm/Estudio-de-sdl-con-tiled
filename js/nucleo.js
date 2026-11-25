@@ -213,10 +213,10 @@
       <header class="lesson-head">
         <div class="eyebrow"><b>Curso personal</b><span>SDL3 · Tiled · C++</span><span>Desarrollo de Videojuegos</span></div>
         <h1>Del bucle de juego al enemigo que te persigue</h1>
-        <p class="lead">Clases a tu medida para entender (y sobre todo programar) cada tema del temario: framerate, delta time, entidades, XML, mapas de Tiled, físicas, colisiones, animaciones y pathfinding. Cada lección sigue los TODOs de los handouts, con demos que puedes tocar y la solución escondida para cuando te atasques.</p>
+        <p class="lead">Clases a tu medida para entender (y sobre todo programar) cada tema del temario: framerate, delta time, entidades, XML, mapas de Tiled, físicas, colisiones, animaciones, pathfinding (BFS, Dijkstra y A*), enemigos con IA y guardar/cargar partida. Cada lección sigue los TODOs de los handouts, con demos que puedes tocar y la solución escondida para cuando te atasques.</p>
       </header>
 
-      ${nota(`<p><strong>¿Quieres construir el juego de plataformas?</strong> El <a href="#l13">Bloque 7 · Construye el plataformas paso a paso</a> te lleva desde una carpeta vacía hasta un plataformas completo (tu caballero, monedas, slimes con pathfinding, vidas, checkpoints, meta, guardar/cargar), con todo el código explicado y probado. Y al final, el <a href="#examen">examen</a>.</p>`, "game", "Empieza por aquí")}
+      ${nota(`<p><strong>¿Quieres construir el juego de plataformas?</strong> El <a href="#l13">Bloque 8 · Construye el plataformas paso a paso</a> te lleva desde una carpeta vacía hasta un plataformas completo (tu caballero, monedas, slimes con pathfinding, vidas, checkpoints, meta, guardar/cargar), con todo el código explicado y probado. Y al final, el <a href="#examen">examen</a>.</p>`, "game", "Empieza por aquí")}
 
       <h2>Cómo usar este curso</h2>
       <ol>
@@ -226,7 +226,7 @@
         <li><strong>Responde el test</strong> del final. Si fallas una pregunta, vuelve a la sección que explica esa idea.</li>
         <li><strong>Marca la lección como hecha</strong> para ver tu progreso en la barra lateral (se guarda en este navegador).</li>
       </ol>
-      ${nota(`<p>Cada lección se apoya en la anterior: el motor va creciendo de clase en clase (Timer → dt → entidades → config.xml → mapa → físicas → colisiones del mapa → animaciones → pathfinding). Si empiezas desde cero, ve en orden y no te saltes la <a href="#l01">lección 01</a>.</p>`, "", "Orden recomendado")}
+      ${nota(`<p>Cada lección se apoya en la anterior: el motor va creciendo de clase en clase (Timer → dt → entidades → config.xml → mapa → físicas → colisiones del mapa → animaciones → BFS → Dijkstra → A* → enemigos → guardar/cargar). Si empiezas desde cero, ve en orden y no te saltes la <a href="#l01">lección 01</a>.</p>`, "", "Orden recomendado")}
 
       <div class="path">${lecciones.map((l, i) => `<span>${l.num} ${l.corto || l.titulo}</span>${i < lecciones.length - 1 ? "<i>→</i>" : ""}`).join("")}</div>
 
@@ -234,7 +234,7 @@
         <a class="card ${h[l.id] ? "done" : ""}" href="#${l.id}"><span class="num">${l.num}</span><span class="ttl">${l.titulo}</span><span class="sum">${l.resumen}</span></a>`).join("")}</div>`).join("")}
 
       <h2>Próximas lecciones</h2>
-      <p>El curso está pensado para crecer. Cuando tengas los PDFs de las siguientes clases (A*, enemigos que persiguen, UI, audio, escenas…), pásamelos y añadiré nuevas lecciones con el mismo formato sin tocar las que ya tienes.</p>
+      <p>El curso está pensado para crecer. Cuando tengas los PDFs de las siguientes clases (UI, audio, escenas, optimización…), pásamelos y añadiré nuevas lecciones con el mismo formato sin tocar las que ya tienes.</p>
     `;
   }
 

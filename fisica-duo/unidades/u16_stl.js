@@ -18,7 +18,7 @@
     else ▢it;
 }`, ["erase", "++", "remove", "--", "insert"], ["erase", "++"], "erase devuelve un iterador al siguiente elemento."),
       test("¿Qué hace `for (auto car : cars)` si `cars` es `std::vector<Car>` (objetos, no punteros)?", ["Recorre referencias", "Copia cada coche: los cambios no se guardan en el vector", "No compila", "Recorre al revés"], 1, "Usa `for (auto& car : cars)` para modificar, o `const auto&` para leer sin copiar."),
-      escribe("Escribe la cabecera de un for por rango que recorra `cars` por referencia constante (nombre de variable `car`).", [/^for\(constauto&car:cars\)\{?$/, /^for\(autoconst&car:cars\)\{?$/, /^for\(constCar&car:cars\)\{?$/], "`for (const auto& car : cars)`: sin copias y sin poder modificar.", { ph: "for (..." }),
+      escribe("Escribe la cabecera de un for por rango que recorra `cars` por referencia constante (nombre de variable `car`).", [/^for\(constauto&car:cars\)\{?$/, /^for\(autoconst&car:cars\)\{?$/, /^for\(constCar&car:cars\)\{?$/], "`for (const auto& car : cars)`: sin copias y sin poder modificar.", { sol: "for (const auto& car : cars)", ph: "for (..." }),
       test("Con `std::vector<Car*> cars;`, ¿qué hace `cars.clear()`?", ["Libera los coches", "Vacía el vector pero NO hace delete de los coches (fuga)", "Destruye los cuerpos de Box2D", "Nada"], 1, "El vector solo guarda punteros. Haz delete de cada uno antes."),
       huecos("Busca el primer coche que haya terminado.", String.raw`auto it = std::▢(cars.begin(), cars.end(),
     [](Car* c) { return c->finished; });
@@ -30,7 +30,7 @@ if (it ▢ cars.end()) winner = *it;`, ["find_if", "!=", "sort", "==", "count"],
         "    bullets.end());"], "remove_if mueve las buenas al principio y devuelve dónde empieza la basura; erase la corta."),
       test("¿Qué captura `[this]` en una lambda dentro de un método?", ["Nada", "El puntero al objeto: la lambda puede usar sus miembros y métodos", "Una copia del objeto", "Las variables locales"], 1, ""),
       test("¿Y `[&]`?", ["Todas las variables locales usadas, por referencia", "Solo this", "Todo por copia", "Nada"], 0, "Cuidado: si la lambda se guarda y se usa después, esas referencias pueden quedar colgando."),
-      escribe("Escribe la lambda (sin `;`) que compara dos `Car*` a y b por `best_lap` de menor a mayor.", [/^\[\]\(Car\*a,Car\*b\)\{returna->best_lap<b->best_lap;?\}$/, /^\[\]\(constCar\*a,constCar\*b\)\{returna->best_lap<b->best_lap;?\}$/], "`[](Car* a, Car* b) { return a->best_lap < b->best_lap; }`", { ph: "[](Car* a, Car* b) { ... }" }),
+      escribe("Escribe la lambda (sin `;`) que compara dos `Car*` a y b por `best_lap` de menor a mayor.", [/^\[\]\(Car\*a,Car\*b\)\{returna->best_lap<b->best_lap;?\}$/, /^\[\]\(constCar\*a,constCar\*b\)\{returna->best_lap<b->best_lap;?\}$/], "`[](Car* a, Car* b) { return a->best_lap < b->best_lap; }`", { sol: "[](Car* a, Car* b) { return a->best_lap < b->best_lap; }", ph: "[](Car* a, Car* b) { ... }" }),
       test("¿Qué devuelve `textures[\"nitro\"]` en un std::map si la clave no existe?", ["Lanza un error", "Crea un elemento nuevo con valor por defecto y lo devuelve", "nullptr", "end()"], 1, "Para solo consultar sin crear, usa `find` o `count`."),
       huecos("Consulta segura en un map.", String.raw`auto it = sounds.▢("crash");
 if (it != sounds.end())

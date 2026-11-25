@@ -1,5 +1,5 @@
 /* =====================================================================
-   Demo compartida de pathfinding (L11 BFS, L12 Dijkstra).
+   Demo compartida de pathfinding (L11 BFS, L12 Dijkstra, L13 A*).
    Imita la clase Pathfinding del handout: frontier, visited,
    breadcrumbs, costSoFar y PropagateBFS / PropagateDijkstra paso a paso.
    ===================================================================== */
@@ -10,7 +10,7 @@
   const COST = { 0: 1, 2: 3, 3: 6 };
 
   /**
-   * opts: { algo: "bfs"|"dijkstra", terrain: bool (permite pintar arena/agua),
+   * opts: { algo: "bfs"|"dijkstra"|"astar", heuristic: bool (selector de heurística), terrain: bool (permite pintar arena/agua),
    *         breadcrumbs: bool, path: bool, choose: bool (selector de algoritmo) }
    */
   Curso.pathDemo = function (root, opts) {
@@ -21,7 +21,8 @@
         <button type="button" class="btn" data-a="run">Reproducir (Shift+J)</button>
         <button type="button" class="btn" data-a="reset">Reset (R)</button>
         <label>Velocidad <input type="range" class="pf-speed" min="1" max="60" value="12"></label>
-        ${opts.choose ? `<label>Algoritmo <select class="pf-algo"><option value="bfs">BFS</option><option value="dijkstra" selected>Dijkstra</option></select></label>` : ""}
+        ${opts.choose ? `<label>Algoritmo <select class="pf-algo"><option value="bfs">BFS</option><option value="dijkstra" ${opts.algo === "astar" ? "" : "selected"}>Dijkstra</option><option value="astar" ${opts.algo === "astar" ? "selected" : ""}>A*</option></select></label>` : ""}
+        ${opts.heuristic || opts.algo === "astar" ? `<label>Heurística <select class="pf-h"><option value="manhattan">Manhattan</option><option value="euclidean">Euclídea</option><option value="squared">Euclídea al cuadrado</option></select></label>` : ""}
       </div>
       <div class="controls">
         <span style="color:var(--ink-3)">Pincel:</span>
@@ -38,7 +39,15 @@
     const cv = root.querySelector(".pf-cv"), ctx = Curso.canvas(cv, W * S, H * S);
     const out = root.querySelector(".pf-out"), logEl = root.querySelector(".pf-log");
     const stopCb = root.querySelector(".pf-stop"), bcCb = root.querySelector(".pf-bc"), costCb = root.querySelector(".pf-cost");
-    const algoSel = root.querySelector(".pf-algo"), speed = root.querySelector(".pf-speed");
+    const algoSel = root.querySelector(".pf-algo"), speed = root.querySelector(".pf-speed"), hSel = root.querySelector(".pf-h");
+    const hName = () => (hSel ? hSel.value : "manhattan");
+    function heur(x, y) {
+      const dx = Math.abs(x - goal.x), dy = Math.abs(y - goal.y);
+      if (hName() === "euclidean") return Math.round(Math.sqrt(dx * dx + dy * dy) * 10) / 10;
+      if (hName() === "squared") return dx * dx + dy * dy;
+      return dx + dy;
+    }
+    const usaCoste = () => algo() !== "bfs";
     const grid = new Array(W * H).fill(FREE);
     // Mapa inicial
     for (let y = 1; y < 10; y++) grid[y * W + 8] = WALL;
@@ -51,8 +60,8 @@
     const key = (p) => p.y * W + p.x;
     const walkable = (x, y) => x >= 0 && y >= 0 && x < W && y < H && grid[y * W + x] !== WALL;
     function reset() {
-      st = { frontier: [{ x: start.x, y: start.y, p: 0 }], visited: new Set([key(start)]), bc: new Map([[key(start), key(start)]]), cost: new Map([[key(start), 0]]), cur: null, found: false, done: false, steps: 0, path: [], lines: [] };
-      log(algo() === "bfs" ? "ResetPath(): frontier = [START], visited = {START}" : "ResetPath(): frontierDijkstra = [(START, 0)], costSoFar[START] = 0");
+      st = { frontier: [{ x: start.x, y: start.y, p: algo() === "astar" ? heur(start.x, start.y) : 0, g: 0 }], visited: new Set([key(start)]), bc: new Map([[key(start), key(start)]]), cost: new Map([[key(start), 0]]), cur: null, found: false, done: false, steps: 0, path: [], lines: [] };
+      log(algo() === "bfs" ? "ResetPath(): frontier = [START], visited = {START}" : algo() === "astar" ? `ResetPath(): frontierAStar = [(START, F=${heur(start.x, start.y)})], costSoFar[START] = 0 · heurística ${hName()}` : "ResetPath(): frontierDijkstra = [(START, 0)], costSoFar[START] = 0");
     }
     function log(s) { if (!st) return; st.lines.push(s); if (st.lines.length > 40) st.lines.shift(); logEl.textContent = st.lines.join("\n"); logEl.scrollTop = logEl.scrollHeight; }
     function computePath() {
@@ -69,12 +78,12 @@
       else {                                                                  // priority queue: menor coste primero
         let bi = 0; for (let i = 1; i < st.frontier.length; i++) if (st.frontier[i].p < st.frontier[bi].p) bi = i;
         cur = st.frontier.splice(bi, 1)[0];
-        if (cur.p > st.cost.get(key(cur))) { log(`pop ${name(key(cur))} con coste viejo ${cur.p}: se descarta`); return; }
+        if (cur.g > st.cost.get(key(cur))) { log(`pop ${name(key(cur))} con coste viejo ${cur.g}: se descarta`); return; }
       }
       st.cur = cur; st.steps++;
       if (cur.x === goal.x && cur.y === goal.y) {
         st.found = true; computePath();
-        log(`pop ${name(key(cur))} = DESTINO -> ComputePath(): ${st.path.length - 1} pasos` + (algo() === "dijkstra" ? `, coste ${st.cost.get(key(goal))}` : ""));
+        log(`pop ${name(key(cur))} = DESTINO -> ComputePath(): ${st.path.length - 1} pasos` + (usaCoste() ? `, coste ${st.cost.get(key(goal))}` : ""));
         if (stopCb.checked) { st.done = true; return; }
       }
       const nb = [[1, 0], [0, 1], [-1, 0], [0, -1]];
@@ -87,10 +96,14 @@
           if (!st.visited.has(nk)) { st.visited.add(nk); st.bc.set(nk, key(cur)); st.frontier.push({ x: nx, y: ny, p: 0 }); added.push(name(nk)); }
         } else {
           const c = st.cost.get(key(cur)) + COST[grid[nk]];
-          if (!st.visited.has(nk) || c < st.cost.get(nk)) { st.cost.set(nk, c); st.visited.add(nk); st.bc.set(nk, key(cur)); st.frontier.push({ x: nx, y: ny, p: c }); added.push(name(nk) + "=" + c); }
+          if (!st.visited.has(nk) || c < st.cost.get(nk)) {
+            const f = algo() === "astar" ? Math.round((c + heur(nx, ny)) * 10) / 10 : c;
+            st.cost.set(nk, c); st.visited.add(nk); st.bc.set(nk, key(cur)); st.frontier.push({ x: nx, y: ny, p: f, g: c });
+            added.push(name(nk) + (algo() === "astar" ? ` G=${c} F=${f}` : "=" + c));
+          }
         }
       }
-      log(`pop ${name(key(cur))}${algo() === "dijkstra" ? " coste " + st.cost.get(key(cur)) : ""} -> añade ${added.length ? added.join(" ") : "nada"}`);
+      log(`pop ${name(key(cur))}${usaCoste() ? " G " + st.cost.get(key(cur)) : ""} -> añade ${added.length ? added.join(" ") : "nada"}`);
     }
     function draw() {
       ctx.clearRect(0, 0, ctx.W, ctx.H);
@@ -131,8 +144,8 @@
       ctx.fillStyle = Curso.color("accent"); ctx.fillRect(goal.x * S + 5, goal.y * S + 4, S - 10, S - 8);
       ctx.fillStyle = "#fff"; ctx.font = "bold 10px Inter, sans-serif"; ctx.textAlign = "center";
       ctx.fillText("E", start.x * S + S / 2, start.y * S + S / 2 + 4); ctx.fillText("P", goal.x * S + S / 2, goal.y * S + S / 2 + 4); ctx.textAlign = "left";
-      const fr = st.frontier.slice(0, 6).map((f) => `(${f.x},${f.y})${algo() === "dijkstra" ? ":" + f.p : ""}`).join(" ");
-      out.innerHTML = `<span>iteraciones <b>${st.steps}</b></span><span>visited <b>${st.visited.size}</b></span><span>frontier <b>${st.frontier.length}</b>: ${fr}${st.frontier.length > 6 ? " …" : ""}</span>${st.found ? `<span>camino <b>${st.path.length - 1} pasos</b>${algo() === "dijkstra" ? ` · coste <b>${st.cost.get(key(goal))}</b>` : ""}</span>` : ""}`;
+      const fr = st.frontier.slice().sort((a, b) => usaCoste() ? a.p - b.p : 0).slice(0, 6).map((f) => `(${f.x},${f.y})${usaCoste() ? ":" + f.p : ""}`).join(" ");
+      out.innerHTML = `<span>iteraciones <b>${st.steps}</b></span><span>visited <b>${st.visited.size}</b></span><span>frontier <b>${st.frontier.length}</b>: ${fr}${st.frontier.length > 6 ? " …" : ""}</span>${st.found ? `<span>camino <b>${st.path.length - 1} pasos</b>${usaCoste() ? ` · coste <b>${st.cost.get(key(goal))}</b>` : ""}</span>` : ""}`;
     }
     // Interacción
     let running = false, acc = 0, drag = null;
@@ -142,6 +155,7 @@
     runBtn.onclick = () => setRun(!running);
     root.querySelector('[data-a="reset"]').onclick = () => { setRun(false); reset(); };
     if (algoSel) Curso.on(algoSel, "change", () => { setRun(false); reset(); });
+    if (hSel) Curso.on(hSel, "change", () => { setRun(false); reset(); });
     const keys = Curso.teclado(cv, (e) => {
       if (e.code === "KeyJ" && !e.shiftKey) step();
       if (e.code === "KeyR") { setRun(false); reset(); }

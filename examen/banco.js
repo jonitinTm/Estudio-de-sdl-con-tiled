@@ -77,7 +77,40 @@ b2Body_SetLinearVelocity(pbody->body, §s2§);`, { s1: { ok: ["GetLinearVelocity
     N("Animaciones y pathfinding", "Spritesheet de 8 columnas y frames de 40 × 44. ¿Cuál es rect.y del tileid 20?", 88, 0, "px", "20 / 8 = 2 → 2 · 44 = 88."),
     T("Animaciones y pathfinding", "La animación se queda congelada en el primer frame. ¿Por qué?", ["Duraciones a 0", "SetCurrent la reinicia cada frame: debe ignorar la llamada si ya es la actual", "Falta loop", "La textura es nearest"], 1, "if (name == current) return;"),
     T("Animaciones y pathfinding", "¿Qué estructura de datos convierte la búsqueda en BFS?", ["Pila", "Cola (FIFO)", "Cola de prioridad", "Mapa"], 1, "Con prioridad sería Dijkstra."),
-    T("Animaciones y pathfinding", "En Dijkstra, ¿puede un nodo visitado volver a la frontera?", ["Nunca", "Sí, si se encuentra un camino más barato hasta él", "Solo el destino", "Solo el inicio"], 1, "newCost < costSoFar.")
+    T("Animaciones y pathfinding", "En Dijkstra, ¿puede un nodo visitado volver a la frontera?", ["Nunca", "Sí, si se encuentra un camino más barato hasta él", "Solo el destino", "Solo el inicio"], 1, "newCost < costSoFar."),
+
+    // ---------------- Breadcrumbs, A* y enemigos (L12–L14) ----------------
+    T("Pathfinding: A* y enemigos", "¿Cómo sabe ComputePath que ha llegado al inicio?", ["Cuando el camino tiene 100 casillas", "Cuando la miguita de la casilla apunta a sí misma (breadcrumbs[start] = start)", "Cuando llega a (0,0)", "Cuando la frontera se vacía"], 1, "Por eso ResetPath debe poner la miguita del inicio en el propio inicio."),
+    T("Pathfinding: A* y enemigos", "En A*, ¿qué es G?", ["La distancia estimada al destino", "El coste real acumulado desde el inicio hasta la casilla", "La suma de las dos", "El número de vecinos"], 1, "G = lo pagado; H = lo que crees que falta; F = G + H."),
+    T("Pathfinding: A* y enemigos", "¿Qué se mete como prioridad en frontierAStar?", ["G", "H", "F = G + H", "El coste de la casilla"], 2, "La cola ordena por F; costSoFar guarda G."),
+    T("Pathfinding: A* y enemigos", "Al pasar de Dijkstra a A* guardas F en costSoFar. ¿Qué pasa?", ["Nada", "La heurística se acumula en cada paso: los costes se disparan y el camino puede ser peor", "Va más rápido sin efectos", "No compila"], 1, "costSoFar debe guardar solo G."),
+    N("Pathfinding: A* y enemigos", "Del tile (2, 5) al (6, 8). ¿Distancia Manhattan?", 7, 0, "", "|6−2| + |8−5| = 4 + 3."),
+    N("Pathfinding: A* y enemigos", "Del tile (2, 5) al (6, 8). ¿Distancia euclídea?", 5, 0.01, "", "√(4² + 3²) = 5."),
+    N("Pathfinding: A* y enemigos", "Del tile (2, 5) al (6, 8). ¿Distancia euclídea al cuadrado?", 25, 0, "", "4² + 3² = 25: mucho más que los 7 pasos reales."),
+    T("Pathfinding: A* y enemigos", "¿Qué heurística puede hacer que A* NO encuentre el camino más corto?", ["Manhattan con 4 direcciones", "Euclídea", "Euclídea al cuadrado", "H = 0"], 2, "Sobreestima (no es admisible): el error crece con el cuadrado de la distancia."),
+    T("Pathfinding: A* y enemigos", "Si H vale siempre 0, A* es…", ["BFS", "Dijkstra", "DFS", "Voraz"], 1, "F = G."),
+    T("Pathfinding: A* y enemigos", "Tu juego de tiles solo permite moverse en 4 direcciones. ¿Mejor heurística?", ["Manhattan", "Euclídea al cuadrado", "Ninguna", "Aleatoria"], 0, "Exacta sin obstáculos y nunca sobreestima."),
+    K("Pathfinding: A* y enemigos", "La prioridad de A* y lo que guarda costSoFar.", String.raw`int g = costSoFar[fx][fy] + MovementCost(nx, ny);
+float h = neighbor.distanceManhattan(destination);
+costSoFar[nx][ny] = §s1§;
+frontierAStar.push(std::make_pair(§s2§, neighbor));`, { s1: { ok: ["g"], w: 4 }, s2: { ok: ["g + (int)h", "g + h", "(int)h + g"], w: 12 } }, "costSoFar ← G; cola ← F = G + H."),
+    T("Pathfinding: A* y enemigos", "Haces clic en (300, 200) de pantalla con camera.x = −640, camera.y = 0. ¿Píxel del mundo?", ["(300, 200)", "(940, 200)", "(−340, 200)", "(640, 0)"], 1, "mundo = pantalla − cámara."),
+    T("Pathfinding: A* y enemigos", "PropagateAStar hace una expansión por llamada. ¿Cómo calculas el camino entero en el juego sin teclas?", ["Llamándola una vez por frame", "En un bucle hasta que haya camino, se vacíe la frontera o se pase un límite de iteraciones", "Con un hilo", "No se puede"], 1, "El límite evita congelar el juego si el jugador es inalcanzable."),
+    T("Pathfinding: A* y enemigos", "El enemigo empieza a perseguir a 8 casillas y deja de hacerlo a 12. ¿Cómo se llama eso y para qué sirve?", ["Heurística: acelera A*", "Histéresis: evita que cambie de estado cada frame en el límite", "Culling: ahorra CPU", "Rubber banding"], 1, ""),
+    T("Pathfinding: A* y enemigos", "Diferencia clave entre el enemigo volador y el terrestre:", ["Ninguna", "El volador ignora la gravedad y usa cualquier casilla libre; el terrestre solo casillas con suelo debajo y controla solo su vx", "El terrestre usa BFS", "El volador no usa pathfinding"], 1, ""),
+    T("Pathfinding: A* y enemigos", "¿Por qué recalcular el camino cada 0,3–0,5 s y no cada frame?", ["Porque A* falla si se repite", "Es caro (sobre todo con varios enemigos) y no se nota al jugar", "Por la gravedad", "Por el VSYNC"], 1, ""),
+
+    // ---------------- Guardar y cargar (L15) ----------------
+    T("Guardar y cargar", "¿Cómo registra savegame.xml que un enemigo ha muerto?", ["alive=\"false\"", "No se escribe: al cargar no se crea", "Con su vida a 0", "Con un id negativo"], 1, "La ausencia es el dato."),
+    T("Guardar y cargar", "En la capa de objetos Entities, el punto de un objeto Point marca…", ["la esquina superior izquierda", "el centro de la entidad", "los pies", "el centro del tile"], 1, "Por eso el handout quitó el “+ media textura” de los Awake."),
+    T("Guardar y cargar", "¿Por qué SaveState y LoadState se llaman desde PostUpdate?", ["Por velocidad", "Para no destruir/crear entidades mientras se recorren en Update", "Porque pugixml lo exige", "Para que se dibujen"], 1, ""),
+    T("Guardar y cargar", "¿Qué hace LoadState antes de crear las entidades del archivo?", ["Nada", "EntityManager::DestroyAll()", "Recarga el mapa entero", "Guarda la partida"], 1, "Si no, convivirían las viejas y las cargadas."),
+    T("Guardar y cargar", "Pones Class = \"enemy\" en Tiled y CreateEntity compara con \"Enemy\". ¿Qué pasa?", ["Funciona", "No se crea ese enemigo (los strings distinguen mayúsculas)", "Crash seguro", "Se crea un Item"], 1, "Haz LOG de las clases desconocidas."),
+    K("Guardar y cargar", "Escribe una entidad en el XML.", String.raw`pugi::xml_node n = list.§s1§("entity");
+n.append_attribute("class") = ClassName(e->type);
+n.append_attribute("x") = e->position.getX();
+doc.§s2§("savegame.xml");`, { s1: { ok: ["append_child"], w: 13 }, s2: { ok: ["save_file"], w: 10 } }, "append_child crea el nodo; save_file lo escribe en disco."),
+    T("Guardar y cargar", "¿Por qué savegame.xml está en el .gitignore?", ["Es muy grande", "Es el estado de cada jugador, no parte del proyecto", "Git no acepta XML", "Por seguridad"], 1, "")
   ];
 
   window.__banco = banco;   // para las pruebas automáticas
@@ -85,7 +118,7 @@ b2Body_SetLinearVelocity(pbody->body, §s2§);`, { s1: { ok: ["GetLinearVelocity
     id: "examen", num: "EX", grupo: "Evaluación", corto: "Examen final",
     titulo: "Examen final: SDL3, Tiled, Box2D y el plataformas",
     resumen: "Preguntas al azar de teoría, cálculo, código y “encuentra el bug”, con nota y corrección explicada.",
-    intro: "Comprueba si dominas todo el temario y el juego que has construido: motor, tiempo, entidades, XML, mapas de Tiled, física, animaciones, pathfinding y plataformas. Sin pistas: como un examen de verdad.",
+    intro: "Comprueba si dominas todo el temario y el juego que has construido: motor, tiempo, entidades, XML, mapas de Tiled, física, animaciones, pathfinding (BFS, Dijkstra, A*), enemigos, guardar/cargar y plataformas. Sin pistas: como un examen de verdad.",
     banco
   });
 })();
