@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Box2D Duo</title>
+<title>GameDev Duo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,13 +75,19 @@ button { font: inherit; color: inherit; }
 .icon-btn { background: none; border: 2px solid var(--line); border-radius: 12px; padding: 4px 10px; font-weight: 800; cursor: pointer; }
 
 /* ---------- Ruta ---------- */
-.intro { padding-block: 20px 4px; }
+.intro { padding-block: 16px 4px; }
+.cursos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.curso-btn { border: 2px solid var(--line); background: var(--card); border-radius: 14px; padding: 10px 8px; font-weight: 900; font-size: .9rem; cursor: pointer; box-shadow: 0 3px 0 var(--line); line-height: 1.2; }
+.curso-btn small { display: block; font-weight: 700; font-size: .72rem; color: var(--ink-3); margin-top: 2px; }
+.curso-btn.on { border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 3px 0 var(--blue); color: var(--ink); }
 .intro h1 { font-size: 1.6rem; line-height: 1.15; margin: 0 0 6px; font-weight: 900; text-wrap: balance; }
 .intro p { margin: 0; color: var(--ink-2); }
 .repaso { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
 .unit { margin: 22px 0; border-radius: 18px; overflow: hidden; border: 2px solid var(--line); background: var(--card); }
 .unit-head { display: flex; gap: 12px; align-items: center; padding: 14px 16px; color: #fff; }
 .unit-badge { flex: none; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: .9rem; background: rgba(255,255,255,.22); }
+.unit-head > div { min-width: 0; }
+.unit-head h2, .unit-head p { overflow-wrap: anywhere; }
 .unit-head h2 { margin: 0; font-size: 1.08rem; line-height: 1.2; font-weight: 900; }
 .unit-head p { margin: 2px 0 0; font-size: .85rem; opacity: .92; line-height: 1.3; }
 .unit-body { padding: 14px 16px 16px; display: grid; gap: 12px; }
@@ -200,7 +206,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 <body>
 <header class="top">
   <div class="wrap">
-    <span><span class="brand">Box2D<b>Duo</b></span> <span class="sync" id="sync"></span></span>
+    <span><span class="brand">GameDev<b>Duo</b></span> <span class="sync" id="sync"></span></span>
     <div class="stats">
       <span class="stat racha" title="Racha de días"><i>🔥</i><span id="st-racha">0</span></span>
       <span class="stat xp" title="Experiencia"><i>XP</i><span id="st-xp">0</span></span>
@@ -214,7 +220,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 
 <section class="lesson" id="leccion" hidden></section>
 
-<footer class="wrap">C++ · Box2D 2.4 · Raylib — Physics II, Proyecto 02. El progreso se guarda en tu cuenta (si abres la web en claude.ai) y en este navegador.</footer>
+<footer class="wrap">C++ · SDL3 · Tiled · Box2D. El progreso se guarda en tu cuenta (si abres la web en claude.ai) y en este navegador.</footer>
 
 <script>
 /* =====================================================================
@@ -230,8 +236,17 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 (function () {
   "use strict";
   const unidades = [];
+  const CURSOS = [
+    { id: "box2d", nombre: "Box2D · Carreras", h1: "Programa física de juegos, ejercicio a ejercicio", p: "ejercicios de C++, Raylib y Box2D 2.4 para acabar programando tú solo el juego de carreras." },
+    { id: "sdl", nombre: "SDL3 · Tiled", h1: "Construye tu motor con SDL3, ejercicio a ejercicio", p: "ejercicios de SDL3, pugixml, mapas de Tiled, Box2D 3, animaciones y pathfinding para programar tu plataformas." }
+  ];
+  let cursoReg = "box2d";
+  let cur = "box2d";
+  try { const c = localStorage.getItem("box2dduo.v1.curso"); if (c === "sdl" || c === "box2d") cur = c; } catch (e) {}
+  const delCurso = () => unidades.filter((u) => u.curso === cur);
   const DUO = window.DUO = {
-    unidad(u) { unidades.push(u); },
+    unidad(u) { if (!u.curso) u.curso = cursoReg; unidades.push(u); },
+    seccion(c) { cursoReg = c; },
     test: (p, o, c, e, x = {}) => Object.assign({ t: "test", p, o, c, e }, x),
     huecos: (p, code, bank, a, e, x = {}) => Object.assign({ t: "huecos", p, code, bank, a, e }, x),
     orden: (p, lines, e, x = {}) => Object.assign({ t: "orden", p, lines, e }, x),
@@ -336,8 +351,8 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 
   function xpHoy() { return S.diaXp && S.diaXp.d === hoy() ? S.diaXp.xp : 0; }
   function metaHTML() {
-    const x = xpHoy(), dom = unidades.reduce((n, u) => n + u.preguntas.filter((_, i) => S.aciertos[u.id + ":" + i]).length, 0);
-    const total = unidades.reduce((n, u) => n + u.preguntas.length, 0);
+    const x = xpHoy(), dom = delCurso().reduce((n, u) => n + u.preguntas.filter((_, i) => S.aciertos[u.id + ":" + i]).length, 0);
+    const total = delCurso().reduce((n, u) => n + u.preguntas.length, 0);
     return `<div class="meta"><div class="meta-row">Meta diaria <span>${Math.min(x, META)}/${META} XP${x >= META ? " ✓" : ""}</span></div><div class="bar"><span style="width:${Math.min(100, 100 * x / META)}%"></span></div>
       <div class="meta-row">Ejercicios dominados <span>${dom}/${total}</span></div><div class="bar"><span style="width:${100 * dom / total}%;background:var(--green-bright)"></span></div></div>`;
   }
@@ -345,15 +360,19 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
   function ruta() {
     document.getElementById("st-xp").textContent = S.xp;
     document.getElementById("st-racha").textContent = S.racha;
-    const nFall = Object.keys(S.falladas).length;
-    const total = unidades.reduce((n, u) => n + u.preguntas.length, 0);
-    let html = `<section class="intro"><h1>Programa física de juegos, ejercicio a ejercicio</h1>
-      <p>${total} ejercicios de C++ y Box2D para acabar programando tú solo el juego de carreras. Lecciones de 5 minutos: lee el código, complétalo, ordénalo, encuentra el bug.</p>
+    const C = CURSOS.find((c) => c.id === cur);
+    const ids = new Set(delCurso().map((u) => u.id));
+    const nFall = Object.keys(S.falladas).filter((k) => ids.has(k.split(":")[0])).length;
+    const total = delCurso().reduce((n, u) => n + u.preguntas.length, 0);
+    const sw = CURSOS.map((c) => { const n = unidades.filter((u) => u.curso === c.id); return `<button type="button" class="curso-btn ${c.id === cur ? "on" : ""}" data-curso="${c.id}" aria-pressed="${c.id === cur}">${esc(c.nombre)}<small>${n.length} unidades · ${n.reduce((a, u) => a + u.preguntas.length, 0)} ejercicios</small></button>`; }).join("");
+    let html = `<section class="intro"><div class="cursos">${sw}</div><h1>${esc(C.h1)}</h1>
+      <p>${total} ${esc(C.p)} Lecciones de 5 minutos: lee el código, complétalo, ordénalo, encuentra el bug.</p>
       ${metaHTML()}<div class="repaso">${nFall ? `<button type="button" class="btn go" data-repaso>Repasar mis ${nFall} fallos</button>` : ""}<button type="button" class="btn" data-mezcla>Lección aleatoria</button></div></section>`;
-    unidades.forEach((u, ui) => {
+    delCurso().forEach((u, num) => {
+      const ui = unidades.indexOf(u);
       const n = Math.ceil(u.preguntas.length / LPL), hechas = S.hechas[u.id] || 0;
-      const col = colores[ui % colores.length];
-      html += `<section class="unit"><div class="unit-head" style="background:${col}"><span class="unit-badge">${esc(u.icono || ui + 1)}</span><div><h2>Unidad ${ui + 1} · ${esc(u.titulo)}</h2><p>${esc(u.desc)}</p></div></div>
+      const col = colores[(num + (cur === "sdl" ? 5 : 0)) % colores.length];
+      html += `<section class="unit"><div class="unit-head" style="background:${col}"><span class="unit-badge">${esc(u.icono || num + 1)}</span><div><h2>Unidad ${num + 1} · ${esc(u.titulo)}</h2><p>${esc(u.desc)}</p></div></div>
         <div class="unit-body"><div class="unit-prog"><div class="bar"><span style="width:${Math.min(100, 100 * hechas / n)}%"></span></div>${Math.min(hechas, n)}/${n}</div>
         <div class="nodes">${Array.from({ length: n }, (_, k) => `<button type="button" class="node ${k < hechas ? "done" : k === hechas ? "next" : ""}" data-u="${ui}" data-l="${k}" aria-label="Lección ${k + 1}">${k < hechas ? "✓" : k + 1}</button>`).join("")}</div>
         <div class="unit-actions">${u.chuleta ? `<button type="button" class="btn small" data-chuleta="${ui}">Chuleta</button>` : ""}<button type="button" class="btn small" data-practica="${ui}">Practicar unidad</button></div></div></section>`;
@@ -382,16 +401,18 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       leccion(baraja(u.preguntas.map((q, i) => Object.assign({ _id: u.id + ":" + i }, q))).slice(0, 10), { unidad: u });
     }
     if (t.dataset.repaso != null) {
-      const ids = Object.keys(S.falladas);
+      const mis = new Set(delCurso().map((u) => u.id));
+      const ids = Object.keys(S.falladas).filter((k) => mis.has(k.split(":")[0]));
       const qs = baraja(ids).slice(0, 10).map(buscar).filter(Boolean);
       leccion(qs, { repaso: true });
     }
     if (t.dataset.mezcla != null) {
-      const todas = []; unidades.forEach((u) => u.preguntas.forEach((q, i) => todas.push(Object.assign({ _id: u.id + ":" + i }, q))));
+      const todas = []; delCurso().forEach((u) => u.preguntas.forEach((q, i) => todas.push(Object.assign({ _id: u.id + ":" + i }, q))));
       leccion(baraja(todas).slice(0, 10), {});
     }
     if (t.dataset.chuleta != null) chuleta(unidades[+t.dataset.chuleta]);
     if (t.id === "ajustes") panel();
+    if (t.dataset.curso) { cur = t.dataset.curso; try { localStorage.setItem("box2dduo.v1.curso", cur); } catch (er) {} ruta(); window.scrollTo(0, 0); }
   });
   function buscar(id) {
     const [uid, i] = id.split(":"); const u = unidades.find((x) => x.id === uid);
@@ -401,7 +422,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
   // ---------- panel de progreso ----------
   function panel() {
     const L = document.getElementById("leccion"); L.hidden = false; document.body.style.overflow = "hidden";
-    const filas = unidades.map((u, ui) => {
+    const filas = delCurso().map((u, ui) => {
       const n = u.preguntas.length, d = u.preguntas.filter((_, i) => S.aciertos[u.id + ":" + i]).length;
       return `<tr><td>${ui + 1}. ${esc(u.titulo)}</td><td><div class="bar mini"><span style="width:${100 * d / n}%"></span></div></td><td class="n">${d}/${n}</td></tr>`;
     }).join("");
@@ -410,7 +431,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       <div class="lesson-scroll"><div class="wrap panel">
         <div class="done" style="padding-top:0"><div class="big"><div class="box"><span>XP</span><b>${S.xp}</b></div><div class="box"><span>Racha</span><b>${S.racha}</b></div><div class="box"><span>Precisión</span><b>${prec}%</b></div></div></div>
         <p>${nube.activa() ? "☁ Tu progreso se guarda en tu cuenta de Claude: ábrelo desde el móvil o el PC y continúas donde lo dejaste." : "Tu progreso se guarda en este navegador. Abre la web desde claude.ai para guardarlo en tu cuenta, o usa la copia de seguridad."}</p>
-        <h3>Dominio por unidad</h3><table>${filas}</table>
+        <h3>Dominio por unidad · ${esc(CURSOS.find((c) => c.id === cur).nombre)}</h3><table>${filas}</table>
         <h3>Copia de seguridad</h3>
         <p>Copia este código y guárdalo. Para pasar tu progreso a otro dispositivo, pégalo allí y pulsa «Restaurar» (se suma al progreso que ya haya).</p>
         <textarea id="bk" spellcheck="false">${esc(btoa(unescape(encodeURIComponent(JSON.stringify(S)))))}</textarea>
@@ -621,5 +642,23 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 <script src="unidades/u18_camara.js"></script>
 <script src="unidades/u19_box2d_pro.js"></script>
 <script src="unidades/u20_cpp_pro.js"></script>
+<script src="unidades/u21_pulido.js"></script>
+<script src="unidades/u22_debug.js"></script>
+<script src="unidades/sdl/s01_motor.js"></script>
+<script src="unidades/sdl/s02_sdl3.js"></script>
+<script src="unidades/sdl/s03_input.js"></script>
+<script src="unidades/sdl/s04_render.js"></script>
+<script src="unidades/sdl/s05_tiempo.js"></script>
+<script src="unidades/sdl/s06_xml.js"></script>
+<script src="unidades/sdl/s07_entidades.js"></script>
+<script src="unidades/sdl/s08_tmx.js"></script>
+<script src="unidades/sdl/s09_mapa.js"></script>
+<script src="unidades/sdl/s10_box2d3.js"></script>
+<script src="unidades/sdl/s11_colmapa.js"></script>
+<script src="unidades/sdl/s12_animcam.js"></script>
+<script src="unidades/sdl/s13_bfs.js"></script>
+<script src="unidades/sdl/s14_dijkstra.js"></script>
+<script src="unidades/sdl/s15_enemigos.js"></script>
+<script src="unidades/sdl/s16_bugs.js"></script>
 </body>
 </html>

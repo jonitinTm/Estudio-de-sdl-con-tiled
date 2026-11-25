@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Box2D Duo</title>
+<title>GameDev Duo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,13 +75,19 @@ button { font: inherit; color: inherit; }
 .icon-btn { background: none; border: 2px solid var(--line); border-radius: 12px; padding: 4px 10px; font-weight: 800; cursor: pointer; }
 
 /* ---------- Ruta ---------- */
-.intro { padding-block: 20px 4px; }
+.intro { padding-block: 16px 4px; }
+.cursos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.curso-btn { border: 2px solid var(--line); background: var(--card); border-radius: 14px; padding: 10px 8px; font-weight: 900; font-size: .9rem; cursor: pointer; box-shadow: 0 3px 0 var(--line); line-height: 1.2; }
+.curso-btn small { display: block; font-weight: 700; font-size: .72rem; color: var(--ink-3); margin-top: 2px; }
+.curso-btn.on { border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 3px 0 var(--blue); color: var(--ink); }
 .intro h1 { font-size: 1.6rem; line-height: 1.15; margin: 0 0 6px; font-weight: 900; text-wrap: balance; }
 .intro p { margin: 0; color: var(--ink-2); }
 .repaso { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
 .unit { margin: 22px 0; border-radius: 18px; overflow: hidden; border: 2px solid var(--line); background: var(--card); }
 .unit-head { display: flex; gap: 12px; align-items: center; padding: 14px 16px; color: #fff; }
 .unit-badge { flex: none; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: .9rem; background: rgba(255,255,255,.22); }
+.unit-head > div { min-width: 0; }
+.unit-head h2, .unit-head p { overflow-wrap: anywhere; }
 .unit-head h2 { margin: 0; font-size: 1.08rem; line-height: 1.2; font-weight: 900; }
 .unit-head p { margin: 2px 0 0; font-size: .85rem; opacity: .92; line-height: 1.3; }
 .unit-body { padding: 14px 16px 16px; display: grid; gap: 12px; }
@@ -200,7 +206,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 <body>
 <header class="top">
   <div class="wrap">
-    <span><span class="brand">Box2D<b>Duo</b></span> <span class="sync" id="sync"></span></span>
+    <span><span class="brand">GameDev<b>Duo</b></span> <span class="sync" id="sync"></span></span>
     <div class="stats">
       <span class="stat racha" title="Racha de días"><i>🔥</i><span id="st-racha">0</span></span>
       <span class="stat xp" title="Experiencia"><i>XP</i><span id="st-xp">0</span></span>
@@ -214,7 +220,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 
 <section class="lesson" id="leccion" hidden></section>
 
-<footer class="wrap">C++ · Box2D 2.4 · Raylib — Physics II, Proyecto 02. El progreso se guarda en tu cuenta (si abres la web en claude.ai) y en este navegador.</footer>
+<footer class="wrap">C++ · SDL3 · Tiled · Box2D. El progreso se guarda en tu cuenta (si abres la web en claude.ai) y en este navegador.</footer>
 
 <script>
 /* =====================================================================
@@ -230,8 +236,17 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 (function () {
   "use strict";
   const unidades = [];
+  const CURSOS = [
+    { id: "box2d", nombre: "Box2D · Carreras", h1: "Programa física de juegos, ejercicio a ejercicio", p: "ejercicios de C++, Raylib y Box2D 2.4 para acabar programando tú solo el juego de carreras." },
+    { id: "sdl", nombre: "SDL3 · Tiled", h1: "Construye tu motor con SDL3, ejercicio a ejercicio", p: "ejercicios de SDL3, pugixml, mapas de Tiled, Box2D 3, animaciones y pathfinding para programar tu plataformas." }
+  ];
+  let cursoReg = "box2d";
+  let cur = "box2d";
+  try { const c = localStorage.getItem("box2dduo.v1.curso"); if (c === "sdl" || c === "box2d") cur = c; } catch (e) {}
+  const delCurso = () => unidades.filter((u) => u.curso === cur);
   const DUO = window.DUO = {
-    unidad(u) { unidades.push(u); },
+    unidad(u) { if (!u.curso) u.curso = cursoReg; unidades.push(u); },
+    seccion(c) { cursoReg = c; },
     test: (p, o, c, e, x = {}) => Object.assign({ t: "test", p, o, c, e }, x),
     huecos: (p, code, bank, a, e, x = {}) => Object.assign({ t: "huecos", p, code, bank, a, e }, x),
     orden: (p, lines, e, x = {}) => Object.assign({ t: "orden", p, lines, e }, x),
@@ -336,8 +351,8 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
 
   function xpHoy() { return S.diaXp && S.diaXp.d === hoy() ? S.diaXp.xp : 0; }
   function metaHTML() {
-    const x = xpHoy(), dom = unidades.reduce((n, u) => n + u.preguntas.filter((_, i) => S.aciertos[u.id + ":" + i]).length, 0);
-    const total = unidades.reduce((n, u) => n + u.preguntas.length, 0);
+    const x = xpHoy(), dom = delCurso().reduce((n, u) => n + u.preguntas.filter((_, i) => S.aciertos[u.id + ":" + i]).length, 0);
+    const total = delCurso().reduce((n, u) => n + u.preguntas.length, 0);
     return `<div class="meta"><div class="meta-row">Meta diaria <span>${Math.min(x, META)}/${META} XP${x >= META ? " ✓" : ""}</span></div><div class="bar"><span style="width:${Math.min(100, 100 * x / META)}%"></span></div>
       <div class="meta-row">Ejercicios dominados <span>${dom}/${total}</span></div><div class="bar"><span style="width:${100 * dom / total}%;background:var(--green-bright)"></span></div></div>`;
   }
@@ -345,15 +360,19 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
   function ruta() {
     document.getElementById("st-xp").textContent = S.xp;
     document.getElementById("st-racha").textContent = S.racha;
-    const nFall = Object.keys(S.falladas).length;
-    const total = unidades.reduce((n, u) => n + u.preguntas.length, 0);
-    let html = `<section class="intro"><h1>Programa física de juegos, ejercicio a ejercicio</h1>
-      <p>${total} ejercicios de C++ y Box2D para acabar programando tú solo el juego de carreras. Lecciones de 5 minutos: lee el código, complétalo, ordénalo, encuentra el bug.</p>
+    const C = CURSOS.find((c) => c.id === cur);
+    const ids = new Set(delCurso().map((u) => u.id));
+    const nFall = Object.keys(S.falladas).filter((k) => ids.has(k.split(":")[0])).length;
+    const total = delCurso().reduce((n, u) => n + u.preguntas.length, 0);
+    const sw = CURSOS.map((c) => { const n = unidades.filter((u) => u.curso === c.id); return `<button type="button" class="curso-btn ${c.id === cur ? "on" : ""}" data-curso="${c.id}" aria-pressed="${c.id === cur}">${esc(c.nombre)}<small>${n.length} unidades · ${n.reduce((a, u) => a + u.preguntas.length, 0)} ejercicios</small></button>`; }).join("");
+    let html = `<section class="intro"><div class="cursos">${sw}</div><h1>${esc(C.h1)}</h1>
+      <p>${total} ${esc(C.p)} Lecciones de 5 minutos: lee el código, complétalo, ordénalo, encuentra el bug.</p>
       ${metaHTML()}<div class="repaso">${nFall ? `<button type="button" class="btn go" data-repaso>Repasar mis ${nFall} fallos</button>` : ""}<button type="button" class="btn" data-mezcla>Lección aleatoria</button></div></section>`;
-    unidades.forEach((u, ui) => {
+    delCurso().forEach((u, num) => {
+      const ui = unidades.indexOf(u);
       const n = Math.ceil(u.preguntas.length / LPL), hechas = S.hechas[u.id] || 0;
-      const col = colores[ui % colores.length];
-      html += `<section class="unit"><div class="unit-head" style="background:${col}"><span class="unit-badge">${esc(u.icono || ui + 1)}</span><div><h2>Unidad ${ui + 1} · ${esc(u.titulo)}</h2><p>${esc(u.desc)}</p></div></div>
+      const col = colores[(num + (cur === "sdl" ? 5 : 0)) % colores.length];
+      html += `<section class="unit"><div class="unit-head" style="background:${col}"><span class="unit-badge">${esc(u.icono || num + 1)}</span><div><h2>Unidad ${num + 1} · ${esc(u.titulo)}</h2><p>${esc(u.desc)}</p></div></div>
         <div class="unit-body"><div class="unit-prog"><div class="bar"><span style="width:${Math.min(100, 100 * hechas / n)}%"></span></div>${Math.min(hechas, n)}/${n}</div>
         <div class="nodes">${Array.from({ length: n }, (_, k) => `<button type="button" class="node ${k < hechas ? "done" : k === hechas ? "next" : ""}" data-u="${ui}" data-l="${k}" aria-label="Lección ${k + 1}">${k < hechas ? "✓" : k + 1}</button>`).join("")}</div>
         <div class="unit-actions">${u.chuleta ? `<button type="button" class="btn small" data-chuleta="${ui}">Chuleta</button>` : ""}<button type="button" class="btn small" data-practica="${ui}">Practicar unidad</button></div></div></section>`;
@@ -382,16 +401,18 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       leccion(baraja(u.preguntas.map((q, i) => Object.assign({ _id: u.id + ":" + i }, q))).slice(0, 10), { unidad: u });
     }
     if (t.dataset.repaso != null) {
-      const ids = Object.keys(S.falladas);
+      const mis = new Set(delCurso().map((u) => u.id));
+      const ids = Object.keys(S.falladas).filter((k) => mis.has(k.split(":")[0]));
       const qs = baraja(ids).slice(0, 10).map(buscar).filter(Boolean);
       leccion(qs, { repaso: true });
     }
     if (t.dataset.mezcla != null) {
-      const todas = []; unidades.forEach((u) => u.preguntas.forEach((q, i) => todas.push(Object.assign({ _id: u.id + ":" + i }, q))));
+      const todas = []; delCurso().forEach((u) => u.preguntas.forEach((q, i) => todas.push(Object.assign({ _id: u.id + ":" + i }, q))));
       leccion(baraja(todas).slice(0, 10), {});
     }
     if (t.dataset.chuleta != null) chuleta(unidades[+t.dataset.chuleta]);
     if (t.id === "ajustes") panel();
+    if (t.dataset.curso) { cur = t.dataset.curso; try { localStorage.setItem("box2dduo.v1.curso", cur); } catch (er) {} ruta(); window.scrollTo(0, 0); }
   });
   function buscar(id) {
     const [uid, i] = id.split(":"); const u = unidades.find((x) => x.id === uid);
@@ -401,7 +422,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
   // ---------- panel de progreso ----------
   function panel() {
     const L = document.getElementById("leccion"); L.hidden = false; document.body.style.overflow = "hidden";
-    const filas = unidades.map((u, ui) => {
+    const filas = delCurso().map((u, ui) => {
       const n = u.preguntas.length, d = u.preguntas.filter((_, i) => S.aciertos[u.id + ":" + i]).length;
       return `<tr><td>${ui + 1}. ${esc(u.titulo)}</td><td><div class="bar mini"><span style="width:${100 * d / n}%"></span></div></td><td class="n">${d}/${n}</td></tr>`;
     }).join("");
@@ -410,7 +431,7 @@ footer { color: var(--ink-3); font-size: .8rem; padding-block: 10px 40px; text-a
       <div class="lesson-scroll"><div class="wrap panel">
         <div class="done" style="padding-top:0"><div class="big"><div class="box"><span>XP</span><b>${S.xp}</b></div><div class="box"><span>Racha</span><b>${S.racha}</b></div><div class="box"><span>Precisión</span><b>${prec}%</b></div></div></div>
         <p>${nube.activa() ? "☁ Tu progreso se guarda en tu cuenta de Claude: ábrelo desde el móvil o el PC y continúas donde lo dejaste." : "Tu progreso se guarda en este navegador. Abre la web desde claude.ai para guardarlo en tu cuenta, o usa la copia de seguridad."}</p>
-        <h3>Dominio por unidad</h3><table>${filas}</table>
+        <h3>Dominio por unidad · ${esc(CURSOS.find((c) => c.id === cur).nombre)}</h3><table>${filas}</table>
         <h3>Copia de seguridad</h3>
         <p>Copia este código y guárdalo. Para pasar tu progreso a otro dispositivo, pégalo allí y pulsa «Restaurar» (se suma al progreso que ya haya).</p>
         <textarea id="bk" spellcheck="false">${esc(btoa(unescape(encodeURIComponent(JSON.stringify(S)))))}</textarea>
@@ -1825,6 +1846,861 @@ int ▢ = 0;`, ["count", "Car::count", "this->count", "static count"], ["count",
       huecos("Inicialización uniforme con llaves.", String.raw`struct GridPos { int x, y; float angle; };
 GridPos grid[2] = ▢ { 100, 200, 0.0f }, { 140, 200, 0.0f } ▢;`, ["{", "}", "(", ")"], ["{", "}"], ""),
       test("¿Qué hace `auto` en `auto it = textures.find(\"car\");`?", ["Es un tipo dinámico", "El compilador deduce el tipo (aquí, un iterador del map)", "Hace la variable global", "Nada"], 1, "Sigue siendo tipado estático: el tipo se fija al compilar.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "pulido", titulo: "Pulido: sonido, partículas y game feel", icono: "✨",
+    desc: "Audio con Raylib (Sound y Music), volumen según la velocidad, marcas de derrape, partículas, screen shake y menús.",
+    chuleta: [
+      ["Audio", "```InitAudioDevice();\nSound crash = LoadSound(\"Assets/crash.wav\");     // corto: efectos\nMusic music = LoadMusicStream(\"Assets/race.ogg\"); // largo: se lee a trozos\nPlayMusicStream(music);\n// cada frame:\nUpdateMusicStream(music);\n// al salir:\nUnloadSound(crash); UnloadMusicStream(music); CloseAudioDevice();```"],
+      ["Screen shake", "```if (shake > 0) { cam.offset.x = base.x + GetRandomValue(-4, 4) * shake; shake -= dt * 3.0f; }\nelse cam.offset = base;```"]
+    ],
+    preguntas: [
+      test("¿Cuál es la diferencia entre Sound y Music en Raylib?", ["Ninguna", "Sound se carga entero en memoria (efectos cortos); Music se va leyendo a trozos (canciones largas)", "Music no tiene volumen", "Sound es solo .ogg"], 1, "", { nuevo: true }),
+      bug("La música suena a trozos o se para.", [
+        "PlayMusicStream(music);",
+        "// Update:",
+        "DrawRace();"], 2, "Falta `UpdateMusicStream(music);` cada frame: rellena el buffer de audio."),
+      huecos("Volumen del motor según la velocidad.", String.raw`float t = fminf(fabsf(GetForwardSpeed()) / max_speed, 1.0f);
+SetSoundVolume(engine_fx, 0.2f + 0.8f * ▢);
+SetSoundPitch(engine_fx, 0.8f + 0.7f * t);
+if (!▢(engine_fx)) PlaySound(engine_fx);`, ["t", "IsSoundPlaying", "max_speed", "IsSoundReady", "speed"], ["t", "IsSoundPlaying"], "Pitch más agudo cuanto más rápido: suena a motor de verdad."),
+      test("El sonido de choque suena 20 veces superpuesto en un golpe. ¿Solución?", ["Bajar el volumen", "Solo reproducirlo si el impulso del choque supera un umbral y no ha sonado en los últimos 0,2 s", "Quitarlo", "Más fps"], 1, ""),
+      test("¿Cómo dibujas marcas de derrape?", ["Con física", "Guardas posiciones de las ruedas traseras mientras drifting es true y dibujas líneas/círculos semitransparentes debajo de los coches", "Con una textura gigante", "No se puede"], 1, "Limita la lista (p. ej. 500 puntos) borrando los más viejos."),
+      orden("Un sistema de partículas sencillo (humo).", [
+        "struct Particle { Vector2 pos, vel; float life; };",
+        "particles.push_back({ exhaust, { rnd(-20, 20), rnd(-20, 20) }, 0.6f });",
+        "for (auto& p : particles) { p.pos.x += p.vel.x * dt; p.pos.y += p.vel.y * dt; p.life -= dt; }",
+        "particles.erase(std::remove_if(particles.begin(), particles.end(), [](const Particle& p) { return p.life <= 0; }), particles.end());",
+        "for (auto& p : particles) DrawCircleV(p.pos, 4, Fade(GRAY, p.life));"], "Crear, mover, borrar las muertas, dibujar."),
+      test("¿Qué hace `Fade(GRAY, 0.3f)`?", ["Nada", "Devuelve el color con alfa al 30 %", "Oscurece", "Mezcla con negro"], 1, ""),
+      escribe("Escribe un número aleatorio entero entre -4 y 4 con Raylib.", ["GetRandomValue(-4, 4)"], "", { ph: "GetRandomValue(..." }),
+      test("¿Qué es el game feel?", ["Los gráficos", "La sensación al jugar: respuesta inmediata, sonido, vibración, partículas, cámara que reacciona", "El framerate", "El menú"], 1, ""),
+      test("Al chocar fuerte, ¿qué pequeño efecto ayuda mucho?", ["Pausar el juego 1 s", "Un screen shake corto + sonido + partículas", "Cambiar de nivel", "Nada"], 1, ""),
+      huecos("Menú con selección por teclado.", String.raw`if (IsKeyPressed(KEY_DOWN)) selected = (selected + 1) ▢ OPTION_COUNT;
+if (IsKeyPressed(KEY_UP))   selected = (selected - 1 + OPTION_COUNT) % OPTION_COUNT;
+if (IsKeyPressed(▢)) ChooseOption(selected);`, ["%", "KEY_ENTER", "/", "KEY_SPACE_BAR", "+"], ["%", "KEY_ENTER"], "El + OPTION_COUNT evita que el módulo de un negativo dé negativo."),
+      test("¿Por qué `(selected - 1 + COUNT) % COUNT` y no `(selected - 1) % COUNT`?", ["Es igual", "En C++, -1 % 3 vale -1 (no 2): sumando COUNT antes evitas el negativo", "Es más rápido", "Por estilo"], 1, ""),
+      bug("Al volver al menú y empezar otra carrera, el juego se queda sin memoria poco a poco.", [
+        "void StartRace() { music = LoadMusicStream(\"race.ogg\"); PlayMusicStream(music); }",
+        "void BackToMenu() { StopMusicStream(music); }"], 1, "Se carga la música en cada carrera y nunca se descarga: `UnloadMusicStream(music)` al salir (o cárgala una vez en Start)."),
+      test("¿Dónde se llama InitAudioDevice?", ["En cada sonido", "Una vez al inicio (módulo de audio, en Init/Start)", "En Draw", "Nunca"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    id: "debug", titulo: "Depurar como un profesional", icono: "🔍",
+    desc: "Breakpoints, watch, pila de llamadas, LOG útiles, asserts, debug draw de Box2D, leer errores de compilación y de enlazado.",
+    chuleta: [
+      ["Herramientas", "**F9** breakpoint · **F5** continuar · **F10** paso por encima · **F11** entrar en la función · **Shift+F11** salir · ventana **Inspección (watch)** · **Pila de llamadas**: quién llamó a quién antes del crash."],
+      ["Assert", "```#include <cassert>\nassert(body != nullptr && \"CreateBody devolvió null\");   // en Debug para el programa si es falso```"],
+      ["Errores", "**C2065** identificador no declarado (falta include o typo). **C2039** no es miembro de la clase. **LNK2019/2001** declarado pero sin definir (falta .cpp o el static). **Access violation reading 0x00000000** → puntero nulo."]
+    ],
+    preguntas: [
+      test("El juego crashea con «Access violation reading location 0x00000000». ¿Qué significa?", ["Sin memoria", "Usaste un puntero nulo (por ejemplo un body que nunca se creó)", "División por cero", "Error de Box2D"], 1, "", { nuevo: true }),
+      test("¿Qué ventana de Visual Studio te dice qué funciones se estaban ejecutando cuando crasheó?", ["Salida", "Pila de llamadas (Call Stack)", "Explorador de soluciones", "Lista de errores"], 1, ""),
+      test("¿Qué tecla entra DENTRO de la función de la línea actual al depurar?", ["F10", "F11", "F5", "F9"], 1, "F10 la ejecuta entera sin entrar."),
+      test("Error C2065: 'b2Vec2': identificador no declarado. ¿Causa más probable?", ["Box2D roto", "Falta `#include \"box2d/box2d.h\"` en ese archivo", "Error de enlazado", "Falta un ;"], 1, ""),
+      test("Error LNK2019 al llamar a `Car::GetRight()`. ¿Causa más probable?", ["Typo en la llamada", "La declaraste en el .h pero no la implementaste en el .cpp (o el .cpp no está en el proyecto)", "Falta include", "Box2D"], 1, ""),
+      escribe("Escribe un assert que compruebe que `car` no es nulo.", ["assert(car != nullptr)", "assert(car)", "assert(car != NULL)"], "", { ph: "assert(...)" }),
+      test("Un breakpoint condicional sirve para…", ["parar siempre", "parar solo cuando una condición es cierta (p. ej. lap == 3)", "acelerar el juego", "nada"], 1, "Clic derecho en el punto rojo → Condiciones."),
+      bug("El LOG no ayuda a encontrar por qué la vuelta no cuenta.", [
+        "LOG(\"collision\");",
+        "if (index != car->next_checkpoint) return;"], 0, "Un LOG útil dice QUÉ pasa: `LOG(\"cp %d, esperado %d\", index, car->next_checkpoint);`."),
+      huecos("Un LOG útil.", String.raw`LOG("Coche %s en checkpoint %▢ (esperaba %d), t=%▢", name.c_str(), index, next_checkpoint, timer.ReadSec());`, ["d", ".2f", "s", "f2"], ["d", ".2f"], ""),
+      test("¿Qué haces primero cuando algo de física «hace cosas raras»?", ["Cambiar valores al azar", "Activar el debug draw (F1/F9) para ver los colliders reales", "Reinstalar", "Subir los fps"], 1, ""),
+      test("El juego funciona en Debug y no en Release. Sospechoso nº 1:", ["El compilador", "Variables sin inicializar", "Las texturas", "El audio"], 1, ""),
+      orden("Método para cazar un bug.", ["Reprodúcelo de forma fiable", "Encuentra dónde empieza (LOG/breakpoints)", "Entiende la causa", "Arréglalo", "Comprueba que no rompiste otra cosa"], "Nunca arregles algo que no sabes reproducir."),
+      test("¿Qué es la «depuración del patito de goma»?", ["Un plugin", "Explicar el código en voz alta línea a línea: al hacerlo sueles ver el error", "Un tipo de breakpoint", "Un test automático"], 1, ""),
+      test("Quieres ver el valor de `body->GetLinearVelocity()` mientras el juego va. ¿Lo más rápido?", ["Breakpoint", "Dibujarlo en pantalla con DrawText/TextFormat en el modo debug", "Recompilar en Release", "Un assert"], 1, "Los breakpoints paran el tiempo; para valores que cambian, mejor verlos en vivo.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-motor", titulo: "La arquitectura del motor", icono: "⚙",
+    desc: "Engine singleton, módulos con Awake/Start/PreUpdate/Update/PostUpdate/CleanUp, el orden de los módulos y cómo se cierra el juego.",
+    chuleta: [
+      ["Module", "```class Module {\npublic:\n    virtual ~Module() {}\n    virtual bool Awake() { return true; }      // leer config\n    virtual bool Start() { return true; }      // cargar recursos\n    virtual bool PreUpdate() { return true; }  // input, limpiar pantalla\n    virtual bool Update(float dt) { return true; }\n    virtual bool PostUpdate() { return true; } // presentar el frame\n    virtual bool CleanUp() { return true; }    // liberar\n    std::string name;\n    bool active = true;\n};```"],
+      ["Singleton", "```static Engine& GetInstance() { static Engine instance; return instance; }\n// Uso desde cualquier sitio:\nEngine::GetInstance().render->DrawTexture(tex, x, y);```"],
+      ["Bucle", "Awake de todos → Start de todos → mientras todo devuelva true: PreUpdate, Update, PostUpdate de todos → CleanUp de todos en orden INVERSO."]
+    ],
+    preguntas: [
+      test("¿Qué es un singleton?", ["Una clase con un solo método", "Una clase de la que solo existe una instancia, accesible desde cualquier sitio", "Un puntero nulo", "Un módulo vacío"], 1, "El Engine es uno: `Engine::GetInstance()`.", { nuevo: true }),
+      huecos("El singleton del motor.", String.raw`static Engine& GetInstance()
+{
+    ▢ Engine instance;
+    return ▢;
+}`, ["static", "instance", "new", "this", "const"], ["static", "instance"], "Una variable local static se crea la primera vez y vive hasta el final del programa."),
+      orden("Ordena las fases de la vida de un módulo.", ["Awake", "Start", "PreUpdate", "Update", "PostUpdate", "CleanUp"], "Awake lee la configuración; Start carga recursos (cuando ya existen todos los módulos)."),
+      test("¿Dónde cargas la textura del jugador?", ["Awake", "Start", "PreUpdate", "PostUpdate"], 1, "En Awake aún puede no existir el renderer: Start va después de que todos hayan hecho Awake."),
+      test("¿Por qué CleanUp se llama en orden inverso?", ["Por estética", "Porque los últimos módulos dependen de los primeros: hay que liberar a los que usan antes que a los usados (Scene antes que Render)", "Es más rápido", "No se llama en orden inverso"], 1, ""),
+      test("¿Qué pasa si Update de la escena devuelve false?", ["Nada", "El Engine sale del bucle y empieza a cerrar (CleanUp)", "Se reinicia la escena", "Crash"], 1, ""),
+      escribe("Escribe la condición de Scene::Update para salir con ESC (usa `Engine::GetInstance().input->GetKey` y `KEY_DOWN`).", [/^if\(Engine::GetInstance\(\)\.input->GetKey\(SDL_SCANCODE_ESCAPE\)==KEY_DOWN\)(returnfalse)?$/],
+        "`if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) return false;`", { ph: "if (Engine::GetInstance()..." }),
+      test("¿Por qué el orden en que se añaden los módulos importa?", ["No importa", "Se actualizan en ese orden: Input debe ir antes que Scene, y Render el último (presenta el frame)", "Solo importa el primero", "Por la memoria"], 1, ""),
+      orden("Orden típico de AddModule.", ["AddModule(window);", "AddModule(input);", "AddModule(textures);", "AddModule(audio);", "AddModule(physics);", "AddModule(scene);", "AddModule(map);", "AddModule(entityManager);", "AddModule(render);"], "Render el último para que su PostUpdate presente lo que han dibujado todos. (Map y EntityManager pueden variar según el handout)."),
+      bug("El juego no cierra nunca con ESC.", [
+        "bool Scene::Update(float dt)",
+        "{",
+        "    if (input->GetKey(SDL_SCANCODE_ESCAPE) == KEY_DOWN) return true;",
+        "    return true;",
+        "}"], 2, "Devolver true sigue el bucle. Para salir, `return false`."),
+      test("¿Qué hace la palabra `virtual` en los métodos de Module?", ["Nada", "Permite que Engine llame a `module->Update(dt)` y se ejecute la versión de cada hijo (Scene, Render…)", "Los hace estáticos", "Los oculta"], 1, ""),
+      test("Un módulo tiene `active = false`. ¿Qué hace el Engine?", ["Lo borra", "Se salta sus Update (útil para desactivar una escena)", "Crash", "Lo reinicia"], 1, ""),
+      huecos("El bucle de una fase en el Engine.", String.raw`bool Engine::DoUpdate()
+{
+    for (const auto& module : moduleList)
+    {
+        if (module->▢ == false) continue;
+        if (module->Update(dt) == false) return ▢;
+    }
+    return true;
+}`, ["active", "false", "name", "true", "dt"], ["active", "false"], ""),
+      test("¿Qué ventaja tiene que Render dibuje con una función `DrawTexture` del módulo en vez de llamar a SDL directamente desde el Player?", ["Ninguna", "Un solo sitio aplica la cámara, la escala y el debug: el jugador no sabe nada de SDL_Renderer", "Más velocidad", "Menos memoria"], 1, ""),
+      escribe("Escribe la cabecera (declaración en el .h) del Update de Scene que sobrescribe el de Module.", [/^boolUpdate\(floatdt\)override$/, /^virtualboolUpdate\(floatdt\)override$/], "`bool Update(float dt) override;`", { ph: "bool Update(..." }),
+      test("¿Por qué el destructor de Module es virtual?", ["No hace falta", "Porque los módulos se borran a través de un puntero a Module", "Para que sea más rápido", "Para que no se pueda heredar"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-base", titulo: "SDL3: ventana, renderer y eventos", icono: "SDL",
+    desc: "SDL_Init, SDL_CreateWindow, SDL_CreateRenderer, dibujar rectángulos, presentar, el bucle de eventos y los errores.",
+    chuleta: [
+      ["Lo mínimo", "```if (!SDL_Init(SDL_INIT_VIDEO)) { SDL_Log(\"%s\", SDL_GetError()); return 1; }\nSDL_Window* window = SDL_CreateWindow(\"Juego\", 1280, 720, 0);\nSDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);\n\nbool running = true;\nwhile (running) {\n    SDL_Event e;\n    while (SDL_PollEvent(&e))\n        if (e.type == SDL_EVENT_QUIT) running = false;\n    SDL_SetRenderDrawColor(renderer, 20, 20, 30, 255);\n    SDL_RenderClear(renderer);\n    SDL_FRect r = { 100, 100, 50, 50 };\n    SDL_SetRenderDrawColor(renderer, 255, 200, 0, 255);\n    SDL_RenderFillRect(renderer, &r);\n    SDL_RenderPresent(renderer);\n}\nSDL_DestroyRenderer(renderer); SDL_DestroyWindow(window); SDL_Quit();```"],
+      ["SDL3 vs SDL2", "En SDL3 casi todo devuelve **bool** (true = bien). CreateWindow ya no recibe x, y. Los rectángulos de dibujo son `SDL_FRect` (floats). Los eventos se llaman `SDL_EVENT_...`."]
+    ],
+    preguntas: [
+      test("En SDL3, ¿qué devuelve `SDL_Init` si todo va bien?", ["0", "true", "-1", "Un puntero"], 1, "En SDL2 devolvía 0. En SDL3 es bool: por eso `if (!SDL_Init(...))` es el error.", { nuevo: true }),
+      escribe("Escribe la creación de una ventana de 1280×720 sin flags, título \"Juego\" (variable `window`).", [/^SDL_Window\*window=SDL_CreateWindow\("Juego",1280,720,0\)$/, /^window=SDL_CreateWindow\("Juego",1280,720,0\)$/], "En SDL3 no hay x, y en CreateWindow.", { ph: "SDL_Window* window = ..." }),
+      huecos("Crea el renderer.", String.raw`SDL_Renderer* renderer = SDL_CreateRenderer(▢, ▢);
+if (renderer == nullptr) LOG("Error: %s", SDL_GetError());`, ["window", "NULL", "renderer", "SDL_INIT_VIDEO"], ["window", "NULL"], "El segundo parámetro es el nombre del driver: NULL = el mejor disponible."),
+      orden("Un frame de dibujado.", ["SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);", "SDL_RenderClear(renderer);", "DibujarTodo();", "SDL_RenderPresent(renderer);"], "Limpiar, dibujar, presentar. Sin Present no ves nada."),
+      test("¿Qué hace `SDL_RenderPresent`?", ["Borra la pantalla", "Muestra en la ventana todo lo dibujado desde el último Present (intercambia buffers)", "Crea el renderer", "Lee el teclado"], 1, ""),
+      bug("La ventana se queda en negro.", [
+        "SDL_RenderClear(renderer);",
+        "SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);",
+        "SDL_RenderFillRect(renderer, &r);"], 2, "Falta `SDL_RenderPresent(renderer);` después de dibujar. Sin él, nada llega a la pantalla."),
+      test("¿Qué tipo usa SDL_RenderFillRect en SDL3?", ["SDL_Rect (int)", "SDL_FRect (float)", "SDL_Point", "Vector2D"], 1, "SDL_Rect sigue existiendo (por ejemplo para secciones), pero el render usa floats."),
+      huecos("El bucle de eventos.", String.raw`SDL_Event event;
+while (▢(&event))
+{
+    if (event.type == ▢) running = false;
+}`, ["SDL_PollEvent", "SDL_EVENT_QUIT", "SDL_WaitEvent", "SDL_QUIT", "SDL_EVENT_KEY_DOWN"], ["SDL_PollEvent", "SDL_EVENT_QUIT"], "SDL_QUIT era el nombre de SDL2."),
+      test("¿Por qué `while (SDL_PollEvent(...))` y no `if`?", ["Es igual", "En un frame pueden llegar muchos eventos: hay que vaciar la cola entera", "Para esperar", "Por la CPU"], 1, ""),
+      test("¿Qué pasa si no llamas a SDL_PollEvent nunca?", ["Nada", "El sistema cree que la ventana no responde (y no puedes cerrarla)", "Va más rápido", "Crash inmediato"], 1, ""),
+      escribe("Escribe cómo pones el color de dibujo a blanco opaco.", ["SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255)"], "R, G, B, A de 0 a 255.", { ph: "SDL_SetRenderDrawColor(..." }),
+      test("¿Qué hace `SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND)`?", ["Nada", "Que el alfa del color se tenga en cuenta (rectángulos semitransparentes, debug)", "Borra la pantalla", "Activa VSYNC"], 1, ""),
+      orden("Cierre limpio.", ["SDL_DestroyTexture(tex);", "SDL_DestroyRenderer(renderer);", "SDL_DestroyWindow(window);", "SDL_Quit();"], "Al revés de como se creó: las texturas dependen del renderer, el renderer de la ventana."),
+      test("¿Para qué sirve `SDL_GetError()`?", ["Para lanzar excepciones", "Devuelve el texto del último error de SDL: lo imprimes cuando algo falla", "Cierra SDL", "Nada"], 1, ""),
+      test("Quieres pixel art nítido al escalar la ventana. ¿Qué usas?", ["SDL_SCALEMODE_LINEAR", "SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST) (y/o SDL_SetRenderScale para escalar todo)", "Más resolución", "Nada"], 1, ""),
+      test("¿Qué hace `SDL_SetRenderScale(renderer, 2.0f, 2.0f)`?", ["Dobla la ventana", "Todo lo que dibujas se ve el doble de grande", "Cambia la resolución del monitor", "Nada"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-input", titulo: "Input: la máquina de estados de cada tecla", icono: "⌨",
+    desc: "KEY_IDLE/DOWN/REPEAT/UP, SDL_GetKeyboardState, scancodes, el ratón y por qué no usar solo los eventos.",
+    chuleta: [
+      ["Estados", "`KEY_IDLE` suelta · `KEY_DOWN` justo pulsada (1 frame) · `KEY_REPEAT` mantenida · `KEY_UP` justo soltada (1 frame)."],
+      ["Input::PreUpdate", "```const bool* keys = SDL_GetKeyboardState(NULL);\nfor (int i = 0; i < MAX_KEYS; ++i)\n{\n    if (keys[i])\n        keyboard[i] = (keyboard[i] == KEY_IDLE) ? KEY_DOWN : KEY_REPEAT;\n    else\n        keyboard[i] = (keyboard[i] == KEY_REPEAT || keyboard[i] == KEY_DOWN) ? KEY_UP : KEY_IDLE;\n}```"]
+    ],
+    preguntas: [
+      test("Saltar debe ocurrir una vez por pulsación. ¿Qué estado compruebas?", ["KEY_REPEAT", "KEY_DOWN", "KEY_IDLE", "KEY_UP"], 1, "", { nuevo: true }),
+      test("Moverse mientras mantienes D. ¿Qué compruebas?", ["Solo KEY_DOWN", "KEY_REPEAT (o DOWN o REPEAT)", "KEY_UP", "KEY_IDLE"], 1, "Si solo miras REPEAT pierdes el primer frame: no pasa nada en un juego, pero `== KEY_DOWN || == KEY_REPEAT` es lo más exacto."),
+      huecos("Actualiza una tecla pulsada.", String.raw`if (keys[i])
+    keyboard[i] = (keyboard[i] == ▢) ? ▢ : KEY_REPEAT;`, ["KEY_IDLE", "KEY_DOWN", "KEY_UP", "KEY_REPEAT"], ["KEY_IDLE", "KEY_DOWN"], "Si estaba suelta, acaba de pulsarse; si no, se mantiene."),
+      huecos("Actualiza una tecla NO pulsada.", String.raw`else
+    keyboard[i] = (keyboard[i] == KEY_REPEAT || keyboard[i] == ▢) ? ▢ : KEY_IDLE;`, ["KEY_DOWN", "KEY_UP", "KEY_IDLE", "KEY_REPEAT"], ["KEY_DOWN", "KEY_UP"], ""),
+      test("Secuencia de una tecla pulsada 3 frames y soltada:", ["DOWN, DOWN, DOWN, UP", "DOWN, REPEAT, REPEAT, UP, IDLE", "REPEAT, REPEAT, REPEAT, IDLE", "IDLE, DOWN, UP"], 1, ""),
+      test("¿Qué devuelve `SDL_GetKeyboardState(NULL)` en SDL3?", ["Un evento", "Un array de bool indexado por scancode: true si la tecla está pulsada ahora", "La última tecla", "Un string"], 1, ""),
+      test("Scancode vs keycode: ¿por qué el motor usa SDL_SCANCODE_W?", ["Es más corto", "El scancode es la posición física: WASD funciona igual en un teclado francés (AZERTY)", "Es obligatorio", "Por velocidad"], 1, ""),
+      escribe("Escribe la condición: la tecla A está pulsada o mantenida (usa `GetKey`).", [/^GetKey\(SDL_SCANCODE_A\)==KEY_REPEAT\|\|GetKey\(SDL_SCANCODE_A\)==KEY_DOWN$/, /^GetKey\(SDL_SCANCODE_A\)==KEY_DOWN\|\|GetKey\(SDL_SCANCODE_A\)==KEY_REPEAT$/, /^input->GetKey\(SDL_SCANCODE_A\)==KEY_REPEAT\|\|input->GetKey\(SDL_SCANCODE_A\)==KEY_DOWN$/, /^input->GetKey\(SDL_SCANCODE_A\)==KEY_DOWN\|\|input->GetKey\(SDL_SCANCODE_A\)==KEY_REPEAT$/], "", { ph: "GetKey(...) == ... || ..." }),
+      bug("El jugador salta 5 veces seguidas con una pulsación.", [
+        "if (input->GetKey(SDL_SCANCODE_SPACE) == KEY_REPEAT && onGround)",
+        "    b2Body_ApplyLinearImpulseToCenter(body, { 0, -jumpForce }, true);"], 0, "Debe ser KEY_DOWN: REPEAT es cierto todos los frames que mantienes la tecla."),
+      test("¿Por qué Input lee el teclado en PreUpdate?", ["Por costumbre", "Para que el estado esté actualizado ANTES de que Scene y las entidades lo consulten en Update", "Por obligación de SDL", "Da igual"], 1, ""),
+      test("¿Dónde se procesan los eventos de SDL (cerrar ventana) en el motor?", ["En Scene", "En Input::PreUpdate, con el bucle de SDL_PollEvent; si llega SDL_EVENT_QUIT devuelve false", "En Render", "En ningún sitio"], 1, ""),
+      huecos("Ratón en SDL3.", String.raw`float mx, my;
+SDL_MouseButtonFlags buttons = SDL_GetMouseState(▢mx, ▢my);
+if (buttons & SDL_BUTTON_LMASK) Disparar();`, ["&", "&", "*", "->"], ["&", "&"], "Pasas la dirección de tus variables y SDL las rellena. En SDL3 son float."),
+      test("El ratón está en pantalla (300, 200) y la cámara del motor en (-500, 0). ¿Posición en el mundo?", ["(300, 200)", "(800, 200)", "(-200, 200)", "(500, 0)"], 1, "La cámara es negativa: mundo = pantalla − camera.x = 300 + 500."),
+      test("¿Cómo detectas una combinación como Ctrl+S?", ["No se puede", "GetKey(SDL_SCANCODE_LCTRL) == KEY_REPEAT && GetKey(SDL_SCANCODE_S) == KEY_DOWN", "Con un evento especial", "Con SDL_Delay"], 1, ""),
+      test("Teclas de debug del handout: F9 colliders, F10 god mode... ¿qué estado usas?", ["KEY_REPEAT", "KEY_DOWN (alternan un bool una vez por pulsación)", "KEY_IDLE", "KEY_UP"], 1, "`if (GetKey(SDL_SCANCODE_F9) == KEY_DOWN) debug = !debug;`")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-render", titulo: "Texturas y DrawTexture", icono: "🖼",
+    desc: "Cargar texturas, secciones de un spritesheet, la cámara negativa, flip, rotación, escala, el HUD con speed = 0 y liberar memoria.",
+    chuleta: [
+      ["DrawTexture del motor", "```bool Render::DrawTexture(SDL_Texture* tex, int x, int y, const SDL_Rect* section = nullptr,\n                         float speed = 1.0f, double angle = 0, bool flip = false)\n{\n    SDL_FRect dst;\n    dst.x = (float)(camera.x * speed + x * scale);\n    dst.y = (float)(camera.y * speed + y * scale);\n    // tamaño: el de la sección o el de la textura entera\n    ...\n    SDL_RenderTextureRotated(renderer, tex, src, &dst, angle, NULL, flip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);\n}```"],
+      ["Reglas", "x, y en píxeles del **mundo**. La cámara es **negativa**. `speed = 0` → no se aplica la cámara (HUD). `speed = 0.5` → parallax."]
+    ],
+    preguntas: [
+      escribe("Escribe la carga de \"Assets/player.png\" con SDL3_image (variable `tex`, renderer `renderer`).", [/^SDL_Texture\*tex=IMG_LoadTexture\(renderer,"Assets\/player\.png"\)$/, /^tex=IMG_LoadTexture\(renderer,"Assets\/player\.png"\)$/], "En el motor lo hace Textures::Load, que además guarda la textura para liberarla al final.", { ph: "SDL_Texture* tex = ..." }),
+      test("¿Qué es una sección (SDL_Rect) en DrawTexture?", ["La posición en pantalla", "El trozo de la imagen que quieres dibujar (un frame del spritesheet o un tile)", "La cámara", "El color"], 1, "", { nuevo: true }),
+      test("Spritesheet de frames de 32×32 en una fila. ¿Sección del frame 3 (empezando en 0)?", ["{ 3, 0, 32, 32 }", "{ 96, 0, 32, 32 }", "{ 0, 96, 32, 32 }", "{ 32, 32, 3, 3 }"], 1, "x = 3 · 32 = 96."),
+      test("camera.x = -400. Dibujas un árbol en x = 500 (mundo). ¿Dónde aparece en pantalla?", ["900", "100", "-400", "500"], 1, "pantalla = camera.x + mundo = -400 + 500."),
+      huecos("La transformación de mundo a pantalla dentro de DrawTexture.", String.raw`dst.x = (float)(camera.x * ▢ + x * scale);
+dst.y = (float)(camera.y * speed + y * ▢);`, ["speed", "scale", "dt", "angle"], ["speed", "scale"], ""),
+      test("¿Cómo dibujas el contador de monedas fijo en la esquina?", ["Con x = camera.x + 10", "Con speed = 0: la cámara no se aplica", "Con una cámara nueva", "No se puede"], 1, ""),
+      test("¿Qué hace speed = 0.5 en el fondo de montañas?", ["Lo oculta", "Se mueve a la mitad de velocidad que la cámara: parallax", "Lo dobla", "Nada"], 1, ""),
+      huecos("El jugador mira a la izquierda: voltea el sprite.", String.raw`SDL_FlipMode mode = facingLeft ? ▢ : ▢;
+SDL_RenderTextureRotated(renderer, tex, &src, &dst, 0.0, NULL, mode);`, ["SDL_FLIP_HORIZONTAL", "SDL_FLIP_NONE", "SDL_FLIP_VERTICAL", "true"], ["SDL_FLIP_HORIZONTAL", "SDL_FLIP_NONE"], "Así no necesitas sprites duplicados para la izquierda."),
+      test("¿En qué unidad está el ángulo de SDL_RenderTextureRotated?", ["Radianes", "Grados (sentido horario)", "Vueltas", "Píxeles"], 1, "Box2D da radianes: multiplica por 180/π (o usa `b2Rot_GetAngle(...) * 180.0f / B2_PI`)."),
+      bug("Al cerrar el juego, el detector de fugas se queja de texturas.", [
+        "bool Player::Start() { texture = Engine::GetInstance().textures->Load(\"Assets/player.png\"); return true; }",
+        "bool Player::CleanUp() { return true; }"], 1, "Falta `Engine::GetInstance().textures->UnLoad(texture);` en CleanUp (o que Textures libere todas al final)."),
+      orden("DrawTexture centrado en la posición del cuerpo físico.", [
+        "int x, y;",
+        "pbody->GetPosition(x, y);",
+        "Engine::GetInstance().render->DrawTexture(texture, x - texW / 2, y - texH / 2, &currentFrame);"], "La física da el CENTRO; la textura se dibuja desde la esquina superior izquierda."),
+      test("El sprite se ve borroso al escalar. ¿Qué cambias?", ["Más FPS", "SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST)", "La cámara", "El ángulo"], 1, ""),
+      test("¿Qué hace `SDL_RenderRect` frente a `SDL_RenderFillRect`?", ["Lo mismo", "Solo el borde (ideal para dibujar colliders en debug)", "Rellena", "Dibuja texto"], 1, ""),
+      escribe("Escribe un SDL_FRect llamado `r` en (10, 20) de 32×32.", [/^SDL_FRectr=\{10(\.0f?|f)?,20(\.0f?|f)?,32(\.0f?|f)?,32(\.0f?|f)?\}$/], "x, y, w, h.", { ph: "SDL_FRect r = { ... }" }),
+      test("Dibujas 6.000 tiles por frame y va lento. ¿Primera optimización?", ["Bajar la resolución", "Dibujar solo los tiles dentro de la cámara (culling)", "Usar más texturas", "Quitar el VSYNC"], 1, "Calcula el rango de columnas y filas visibles con WorldToMap de las esquinas de la pantalla.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-tiempo", titulo: "Framerate, frame cap y delta time", icono: "⏱",
+    desc: "Timer y PerfTimer, calcular FPS, limitar a 60 con SDL_DelayPrecise, VSYNC, dt en ms o en s, moverse igual a cualquier fps y limitar dt.",
+    chuleta: [
+      ["Timers", "```// Timer: milisegundos (SDL_GetTicks)\nvoid Start() { startTime = SDL_GetTicks(); }\nUint64 ReadMSec() const { return SDL_GetTicks() - startTime; }\nfloat ReadSec() const { return (SDL_GetTicks() - startTime) / 1000.0f; }\n// PerfTimer: alta precisión\ndouble ReadMs() const { return 1000.0 * (SDL_GetPerformanceCounter() - startTime) / SDL_GetPerformanceFrequency(); }```"],
+      ["FinishUpdate (frame cap)", "```double elapsed = frameTime.ReadMs();\nif (maxFrameDuration > 0 && elapsed < maxFrameDuration)\n    SDL_DelayPrecise((Uint64)((maxFrameDuration - elapsed) * 1000000.0));   // ns\ndt = (float)frameTime.ReadMs();      // DESPUÉS de esperar\nif (dt > 100.0f) dt = 100.0f;      // breakpoints\nframeTime.Start();```"],
+      ["Mover con dt", "`pos += velocidad * dt` con la velocidad en unidades por la misma unidad que dt (px/ms o px/s)."]
+    ],
+    preguntas: [
+      test("Un frame dura 20 ms. ¿FPS?", ["20", "50", "60", "200"], 1, "1000 / 20 = 50.", { nuevo: true }),
+      escribe("Escribe la duración máxima de un frame en ms para `targetFps` (float).", [/^1000(\.0f?|f)?\/targetFps$/], "60 fps → 16,67 ms.", { ph: "1000.0f / ..." }),
+      huecos("Timer::ReadSec.", String.raw`float Timer::ReadSec() const
+{
+    return (SDL_GetTicks() - ▢) / ▢;
+}`, ["startTime", "1000.0f", "1000", "60.0f", "SDL_GetTicks()"], ["startTime", "1000.0f"], "Con 1000 (entero) harías división entera y perderías los decimales."),
+      test("¿Por qué PerfTimer usa SDL_GetPerformanceCounter y no SDL_GetTicks?", ["Es igual", "GetTicks tiene resolución de 1 ms: para medir un frame de 16,6 ms necesitas más precisión", "Es más fácil", "Para el audio"], 1, ""),
+      orden("FinishUpdate con frame cap.", [
+        "double elapsed = frameTime.ReadMs();",
+        "if (elapsed < maxFrameDuration)",
+        "    SDL_DelayPrecise((Uint64)((maxFrameDuration - elapsed) * 1000000.0));",
+        "dt = (float)frameTime.ReadMs();",
+        "frameTime.Start();"], "dt se mide DESPUÉS de esperar, para que incluya la espera."),
+      test("SDL_DelayPrecise recibe…", ["milisegundos", "nanosegundos", "segundos", "frames"], 1, "Por eso se multiplica por 1.000.000 (ms → ns)."),
+      test("Diferencia entre SDL_Delay y SDL_DelayPrecise:", ["Ninguna", "SDL_Delay duerme en ms y puede pasarse; SDL_DelayPrecise espera activamente al final y es más exacto (gasta algo de CPU)", "DelayPrecise es para audio", "SDL_Delay no existe en SDL3"], 1, ""),
+      test("¿Qué hace el VSYNC (`SDL_SetRenderVSync(renderer, 1)`)?", ["Más fps", "RenderPresent espera al refresco del monitor: limita los fps a los Hz de la pantalla y evita el tearing", "Nada", "Baja la resolución"], 1, "Con VSYNC activo, un 144 Hz va a 144 fps: por eso necesitas dt igualmente."),
+      test("El jugador se mueve 4 px por frame. A 30 fps y a 144 fps…", ["va igual", "va casi 5 veces más rápido a 144", "va más rápido a 30", "no se mueve"], 1, "Por eso se multiplica por dt."),
+      escribe("Escribe cómo mueves `x` con `speed` (px/s) si `dt` está en milisegundos.", [/^x\+=speed\*dt\/1000(\.0f?|f)?$/, /^x\+=speed\*\(dt\/1000(\.0f?|f)?\)$/, /^x=x\+speed\*dt\/1000(\.0f?|f)?$/], "dt en ms: divide entre 1000 para pasar a segundos.", { ph: "x += ..." }),
+      bug("El jugador sale disparado nada más empezar a moverse.", [
+        "float speed = 200.0f;          // px/s",
+        "position.x += speed * dt;      // dt = 16.6 (ms)"], 1, "Mezcla px/s con ms: va 1000 veces demasiado rápido. Usa `dt / 1000.0f` o una velocidad en px/ms (0.2)."),
+      test("¿Para qué sirve `if (dt > 100) dt = 100;`?", ["Para ir más rápido", "Si paras en un breakpoint, el siguiente frame duraría segundos y todo se teletransportaría", "Para el VSYNC", "Para el audio"], 1, ""),
+      test("¿Qué es el promedio de fps de los últimos segundos?", ["Lo mismo que el fps del último frame", "frames contados / segundos transcurridos: más estable para el título de la ventana", "Imposible de calcular", "dt × 60"], 1, ""),
+      huecos("Título con datos de debug.", String.raw`char title[256];
+SDL_snprintf(title, sizeof(title), "FPS: %▢ | dt: %.2f ms", averageFps, dt);
+SDL_▢(window, title);`, [".2f", "SetWindowTitle", "d", "SetTitle", "s"], [".2f", "SetWindowTitle"], ""),
+      test("¿Por qué Box2D prefiere un paso fijo (`b2World_Step(world, 1/60.0f, 4)`) aunque tú tengas dt variable?", ["No lo prefiere", "La simulación es estable y reproducible con pasos iguales; con dt variable los saltos cambian de altura", "Es más rápido", "Por el VSYNC"], 1, "Si el juego no va a 60 fijos, acumula dt y da los pasos fijos que toquen."),
+      test("Tienes `int camera.x` y sumas `0.8f` cada frame. ¿Qué pasa?", ["Se mueve 0.8", "No se mueve nunca: se trunca a 0", "Se mueve 1", "Crash"], 1, "Usa float para posiciones y redondea solo al dibujar.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-xml", titulo: "pugixml: config.xml, guardar y cargar", icono: "</>",
+    desc: "Leer config.xml, pasar a cada módulo su nodo, valores por defecto, recorrer hijos, guardar y cargar partida.",
+    chuleta: [
+      ["Leer", "```pugi::xml_document doc;\npugi::xml_parse_result result = doc.load_file(\"config.xml\");\nif (!result) { LOG(\"Error: %s\", result.description()); return false; }\npugi::xml_node win = doc.child(\"config\").child(\"window\");\nint w = win.child(\"resolution\").attribute(\"width\").as_int(1280);   // 1280 = por defecto```"],
+      ["Recorrer", "```for (pugi::xml_node n = node.child(\"enemy\"); n; n = n.next_sibling(\"enemy\"))\n    CreateEnemy(n.attribute(\"x\").as_int(), n.attribute(\"y\").as_int());```"],
+      ["Guardar", "```pugi::xml_node p = doc.child(\"game_state\").child(\"player\");\np.attribute(\"x\").set_value(position.getX());\ndoc.save_file(\"savegame.xml\");```"]
+    ],
+    preguntas: [
+      test("¿Qué ventaja tiene leer los valores de config.xml en vez de escribirlos en el código?", ["Ninguna", "Cambias velocidad, resolución o rutas sin recompilar", "Va más rápido", "Ocupa menos"], 1, "", { nuevo: true }),
+      huecos("Carga el XML y comprueba errores.", String.raw`pugi::xml_document doc;
+pugi::xml_parse_result result = doc.▢("config.xml");
+if (▢result) LOG("%s", result.description());`, ["load_file", "!", "open", "&", "save_file"], ["load_file", "!"], ""),
+      escribe("Escribe la lectura del atributo `jump` (float) del nodo `movement` hijo de `parameters`.", ["parameters.child(\"movement\").attribute(\"jump\").as_float()"], "", { ph: "parameters.child(..." }),
+      test("¿Qué devuelve `attribute(\"widht\").as_int()` si te equivocas al escribir el nombre?", ["Lanza un error", "0 (sin avisar)", "-1", "Crash"], 1, "pugixml no peta: devuelve nodos/atributos vacíos. Por eso conviene hacer LOG de lo que lees o poner un valor por defecto."),
+      test("¿Qué significa el 1280 en `as_int(1280)`?", ["El máximo", "El valor por defecto si el atributo no existe", "El mínimo", "El tamaño del archivo"], 1, ""),
+      test("¿Cómo recibe cada módulo su parte del config?", ["Lee el archivo entero él mismo", "El Engine le pasa `configFile.child(\"config\").child(module->name)` antes de Awake", "Con variables globales", "No lo recibe"], 1, "Por eso el name del módulo debe coincidir con el nodo del XML."),
+      orden("Recorre todos los items del XML.", [
+        "for (pugi::xml_node itemNode = parameters.child(\"item\");",
+        "     itemNode;",
+        "     itemNode = itemNode.next_sibling(\"item\"))",
+        "{",
+        "    Item* item = (Item*)entityManager->CreateEntity(EntityType::ITEM);",
+        "    item->parameters = itemNode;",
+        "}"], "Un nodo vacío se evalúa como false: así termina el bucle."),
+      bug("Solo aparece el primer enemigo.", [
+        "pugi::xml_node e = node.child(\"enemy\");",
+        "CreateEnemy(e.attribute(\"x\").as_int(), e.attribute(\"y\").as_int());",
+        "e = e.next_sibling(\"enemy\");"], 1, "Falta el bucle: `for (pugi::xml_node e = node.child(\"enemy\"); e; e = e.next_sibling(\"enemy\"))`."),
+      test("¿Qué diferencia hay entre `child` y `attribute`?", ["Ninguna", "child busca un nodo hijo (<movement>); attribute un valor dentro de la etiqueta (speed=\"4\")", "attribute es para números", "child es para guardar"], 1, ""),
+      escribe("Escribe cómo lees un atributo `texture` como texto del nodo `parameters`.", ["parameters.attribute(\"texture\").as_string()"], "as_string() devuelve const char*.", { ph: "parameters.attribute(..." }),
+      huecos("Guarda la posición del jugador.", String.raw`pugi::xml_node player = doc.child("game_state").child("player");
+player.attribute("x").▢(position.getX());
+player.attribute("y").set_value(position.getY());
+doc.▢("savegame.xml");`, ["set_value", "save_file", "as_int", "load_file", "write"], ["set_value", "save_file"], ""),
+      test("Al cargar partida, el jugador aparece donde debía pero cae a través del suelo/queda congelado. ¿Qué te falta?", ["Nada", "Mover también el cuerpo físico (SetTransform) y despertarlo (b2Body_SetAwake), no solo `position`", "Guardar más", "Recompilar"], 1, ""),
+      test("¿Qué guardarías como mínimo en una partida?", ["Toda la memoria", "Posición, vidas, monedas, nivel y qué items/enemigos ya no existen (por su id del mapa)", "Solo el nivel", "Las texturas"], 1, ""),
+      escribe("Escribe cómo añades un nodo hijo `player` a `root`.", ["root.append_child(\"player\")"], "Y luego `.append_attribute(\"x\")` para crear atributos.", { ph: "root.append_child(..." }),
+      test("¿Por qué se cargan/guardan las partidas al FINAL del frame (en el Engine) y no en mitad del Update?", ["Por estética", "Para no cambiar el estado del mundo mientras otros módulos lo están recorriendo", "Es más rápido", "No importa"], 1, "Se pide con un flag (saveRequested) y se ejecuta cuando todos han terminado.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-entidades", titulo: "Entidades y EntityManager", icono: "👾",
+    desc: "La clase Entity, EntityType, CreateEntity con switch, la lista de entidades, borrar de forma segura con pendingToDelete y Vector2D.",
+    chuleta: [
+      ["Entity", "```enum class EntityType { PLAYER, ITEM, ENEMY, UNKNOWN };\nclass Entity {\npublic:\n    Entity(EntityType type) : type(type), active(true) {}\n    virtual ~Entity() {}\n    virtual bool Start() { return true; }\n    virtual bool Update(float dt) { return true; }\n    virtual bool CleanUp() { return true; }\n    virtual void OnCollision(PhysBody* a, PhysBody* b) {}\n    EntityType type; bool active; bool pendingToDelete = false;\n    Vector2D position; pugi::xml_node parameters;\n};```"],
+      ["CreateEntity", "```Entity* EntityManager::CreateEntity(EntityType type)\n{\n    Entity* e = nullptr;\n    switch (type) {\n    case EntityType::PLAYER: e = new Player(); break;\n    case EntityType::ITEM:   e = new Item();   break;\n    default: break;\n    }\n    if (e) entities.push_back(e);\n    return e;\n}```"]
+    ],
+    preguntas: [
+      test("¿Por qué Player e Item heredan de Entity?", ["Por obligación", "El EntityManager puede guardarlos en una sola lista de Entity* y llamar a Update de todos", "Para ahorrar memoria", "No heredan"], 1, "", { nuevo: true }),
+      huecos("CreateEntity.", String.raw`switch (type)
+{
+case EntityType::PLAYER: entity = ▢ Player(); ▢;
+case EntityType::ITEM:   entity = new Item();   break;
+default: break;
+}`, ["new", "break", "delete", "return", "continue"], ["new", "break"], ""),
+      test("¿Qué pasa si olvidas el `break` del case PLAYER?", ["Nada", "Sigue al case ITEM: crea un Player, lo pierde (fuga) y devuelve un Item", "No compila", "Crash"], 1, "Fall-through."),
+      orden("EntityManager::Update.", [
+        "for (Entity* entity : entities)",
+        "{",
+        "    if (!entity->active) continue;",
+        "    entity->Update(dt);",
+        "}"], ""),
+      test("Un item recogido debe desaparecer. ¿Por qué no hacer delete en su OnCollision?", ["Sí se puede", "Estás dentro del recorrido de la física/lista: borrarlo ahí deja punteros colgando. Se marca pendingToDelete y se borra al final del frame", "Box2D lo borra", "Por el sonido"], 1, ""),
+      huecos("Borrado seguro al final del frame.", String.raw`for (auto it = entities.begin(); it != entities.end(); )
+{
+    if ((*it)->pendingToDelete)
+    {
+        (*it)->CleanUp();
+        ▢ *it;
+        it = entities.▢(it);
+    }
+    else ++it;
+}`, ["delete", "erase", "remove", "free", "pop"], ["delete", "erase"], ""),
+      test("¿Qué hace el CleanUp del Item antes del delete?", ["Nada", "Pide a la física que destruya su cuerpo y libera su textura si es suya", "Guarda la partida", "Lo dibuja"], 1, ""),
+      escribe("Escribe el cast para usar como Player la entidad devuelta (`Entity* e`), al estilo C++ con comprobación.", ["dynamic_cast<Player*>(e)"], "Devuelve nullptr si no es un Player. (Muchos handouts usan `(Player*)` directamente porque saben el tipo).", { ph: "dynamic_cast<...>(e)" }),
+      test("¿Para qué sirve `EntityType type` si ya hay herencia?", ["Para nada", "Para saber rápidamente qué es una entidad (en colisiones, guardar partida, debug) sin casts", "Para el renderer", "Para el XML"], 1, ""),
+      test("Vector2D: ¿por qué guardar la posición como float?", ["Por costumbre", "Los movimientos pequeños por frame (0.3 px) se acumulan; con int se perderían", "Ocupa menos", "Por SDL"], 1, ""),
+      bug("Fuga de memoria al cerrar.", [
+        "bool EntityManager::CleanUp()",
+        "{",
+        "    for (Entity* e : entities) e->CleanUp();",
+        "    entities.clear();",
+        "    return true;",
+        "}"], 3, "Falta `delete e;` antes del clear (o dentro del for)."),
+      test("¿Cuándo se llama al Start de una entidad creada al cargar el nivel?", ["Nunca", "En EntityManager::Start (o justo al crearla si el nivel se carga en mitad del juego)", "En el destructor", "En Draw"], 1, "Si creas entidades después del Start del manager, alguien tiene que llamar a su Start."),
+      test("El jugador debe estar por encima de los items al dibujar. ¿Qué haces?", ["Nada", "Dibujar los items primero y el jugador después (o ordenar la lista por capa)", "Cambiar el z del sprite", "Usar dos renderers"], 1, ""),
+      escribe("Declara en Entity el método virtual de colisión que no hace nada por defecto (recibe `PhysBody* physA, PhysBody* physB`).", [/^virtualvoidOnCollision\(PhysBody\*physA,PhysBody\*physB\)\{\}$/], "Las entidades que lo necesitan lo sobrescriben.", { ph: "virtual void OnCollision(...) {}" }),
+      test("¿Qué es un enemigo que hereda de Entity y además quiere ser recogible?", ["Imposible", "Un caso donde la herencia se queda corta: se resuelve con tipos/flags o componentes (ECS)", "Un Item", "Un Player"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-tmx", titulo: "Tiled: el formato TMX", icono: "▦",
+    desc: "Qué hay dentro de un .tmx, tilesets y firstgid, capas de tiles con gids, propiedades personalizadas y capas de objetos.",
+    chuleta: [
+      ["TMX (XML)", "```<map width=\"100\" height=\"22\" tilewidth=\"32\" tileheight=\"32\">\n  <tileset firstgid=\"1\" name=\"Terrain\" tilewidth=\"32\" tileheight=\"32\" spacing=\"0\" margin=\"0\" tilecount=\"48\" columns=\"8\">\n    <image source=\"terrain.png\" width=\"256\" height=\"192\"/>\n  </tileset>\n  <tileset firstgid=\"49\" name=\"MapMetadata\" .../>\n  <layer id=\"1\" name=\"Background\" width=\"100\" height=\"22\">\n    <properties><property name=\"Draw\" type=\"bool\" value=\"true\"/></properties>\n    <data><tile gid=\"5\"/><tile gid=\"0\"/>...</data>\n  </layer>\n  <objectgroup name=\"Spawn\"><object id=\"7\" x=\"192\" y=\"1600\" width=\"32\" height=\"32\"/></objectgroup>\n</map>```"],
+      ["Claves", "gid **0** = casilla vacía. El gid es global: `local = gid - firstgid`. Los tiles se guardan fila a fila: `data[j * width + i]`. En Tiled: Map Properties → Tile Layer Format = **XML**."]
+    ],
+    preguntas: [
+      test("¿Qué significa gid = 0 en una capa?", ["El primer tile", "Casilla vacía: no se dibuja nada", "Error", "Colisión"], 1, "", { nuevo: true }),
+      test("Un mapa tiene dos tilesets: Terrain (48 tiles, firstgid 1) y Metadata. ¿firstgid de Metadata?", ["1", "48", "49", "2"], 2, "Los gids siguen donde acabó el anterior: 1 + 48 = 49."),
+      test("gid 53 con el tileset Metadata (firstgid 49). ¿Índice local?", ["53", "4", "49", "5"], 1, "local = gid − firstgid = 53 − 49."),
+      test("Mapa de 100 × 22. ¿Posición en el array `data` de la casilla (i = 5, j = 2)?", ["205", "105", "27", "502"], 0, "j * width + i = 2 · 100 + 5."),
+      escribe("Escribe la expresión del gid de la casilla (i, j) con `layer->tiles` y `layer->width`.", ["layer->tiles[j * layer->width + i]", "layer->tiles[i + j * layer->width]", "layer->tiles[layer->width * j + i]"], "Fila j, columna i.", { ph: "layer->tiles[...]" }),
+      test("Tu código lee `<tile gid=…/>`, pero el TMX tiene un texto con números separados por comas. ¿Qué pasa?", ["Funciona igual", "La capa está en formato CSV: hay que cambiar en Tiled Map Properties → Tile Layer Format a XML", "Es un error del mapa", "Hay que usar otro tileset"], 1, ""),
+      huecos("Lee la cabecera del mapa.", String.raw`pugi::xml_node map = mapFile.child("map");
+mapData.width = map.attribute("width").as_int();
+mapData.tileWidth = map.attribute("▢").as_int();
+mapData.tileHeight = map.attribute("▢").as_int();`, ["tilewidth", "tileheight", "tileWidth", "width", "height"], ["tilewidth", "tileheight"], "Los atributos del TMX van en minúsculas."),
+      orden("Recorre todos los tilesets del TMX.", [
+        "for (pugi::xml_node ts = mapFile.child(\"map\").child(\"tileset\");",
+        "     ts != NULL;",
+        "     ts = ts.next_sibling(\"tileset\"))",
+        "{",
+        "    TileSet* tileSet = new TileSet();",
+        "    tileSet->firstGid = ts.attribute(\"firstgid\").as_int();",
+        "    mapData.tilesets.push_back(tileSet);",
+        "}"], "Si solo lees el primero, la mitad del nivel no tendrá gráficos."),
+      test("¿Para qué sirve una propiedad personalizada `Draw = false` en una capa?", ["Para borrarla", "Para que la capa exista (p. ej. colisiones) pero no se dibuje", "Para ocultar el mapa", "Para el audio"], 1, ""),
+      huecos("Lee las propiedades de una capa.", String.raw`for (pugi::xml_node p = node.child("properties").child("▢"); p; p = p.next_sibling("property"))
+{
+    Properties::Property* prop = new Properties::Property();
+    prop->name = p.attribute("name").▢();
+    prop->value = p.attribute("value").as_bool();
+    layer->properties.propertyList.push_back(prop);
+}`, ["property", "as_string", "properties", "as_bool", "value"], ["property", "as_string"], ""),
+      test("¿Qué diferencia hay entre una capa de tiles y una de objetos?", ["Ninguna", "La de tiles es una rejilla de gids; la de objetos tiene formas libres (rectángulos, puntos) con x, y, w, h en píxeles", "La de objetos no se guarda", "La de tiles es para colisiones"], 1, ""),
+      test("Un objeto rectángulo de Tiled tiene x = 100, y = 200, w = 64, h = 32. ¿Su centro (para Box2D)?", ["(100, 200)", "(132, 216)", "(164, 232)", "(68, 184)"], 1, "x, y es la esquina superior izquierda: centro = (x + w/2, y + h/2)."),
+      test("¿Dónde pondrías el punto de aparición del jugador?", ["En el código", "En una capa de objetos (Spawn) del mapa: así lo mueves sin recompilar", "En config.xml siempre", "En la textura"], 1, ""),
+      test("Un tile volteado en Tiled tiene gid 2147483653. ¿Qué pasa?", ["Es un error", "Los bits altos indican flip (0x80000000 = horizontal): hay que quitarlos con una máscara antes de buscar el tileset", "Es el tile 2147483653", "Es vacío"], 1, "`gid & 0x1FFFFFFF` da el gid real (en Tiled modernos, 0x0FFFFFFF)."),
+      escribe("Escribe la expresión que quita los 3 bits de flip de `gid` (máscara 0x1FFFFFFF).", ["gid & 0x1FFFFFFF", "gid&0x1fffffff"], "", { ph: "gid & ..." })
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-mapa", titulo: "Dibujar el mapa", icono: "🗺",
+    desc: "De gid a rectángulo del tileset (con margin y spacing), qué tileset tiene cada gid, MapToWorld/WorldToMap y el bucle de capas, filas y columnas.",
+    chuleta: [
+      ["GetRect", "```SDL_Rect TileSet::GetRect(int gid) const\n{\n    int local = gid - firstGid;\n    SDL_Rect r;\n    r.x = margin + (tileWidth + spacing) * (local % columns);\n    r.y = margin + (tileHeight + spacing) * (local / columns);\n    r.w = tileWidth; r.h = tileHeight;\n    return r;\n}```"],
+      ["Bucle", "```for (MapLayer* layer : mapData.layers) {\n    if (!layer->properties.GetProperty(\"Draw\") || !layer->properties.GetProperty(\"Draw\")->value) continue;\n    for (int j = 0; j < mapData.height; j++)\n        for (int i = 0; i < mapData.width; i++) {\n            int gid = layer->Get(i, j);\n            if (gid == 0) continue;\n            TileSet* ts = GetTilesetFromTileId(gid);\n            SDL_Rect rect = ts->GetRect(gid);\n            Vector2D pos = MapToWorld(i, j);\n            render->DrawTexture(ts->texture, (int)pos.getX(), (int)pos.getY(), &rect);\n        }\n}```"],
+      ["Conversión", "`MapToWorld(i, j) = (i * tileWidth, j * tileHeight)` · `WorldToMap(x, y) = (x / tileWidth, y / tileHeight)` (división entera)."]
+    ],
+    preguntas: [
+      test("Tileset de 8 columnas, tiles de 32 px, sin margin ni spacing. ¿Rectángulo del índice local 10?", ["{ 320, 0, 32, 32 }", "{ 64, 32, 32, 32 }", "{ 32, 64, 32, 32 }", "{ 80, 10, 32, 32 }"], 1, "columna = 10 % 8 = 2 → x = 64; fila = 10 / 8 = 1 → y = 32.", { nuevo: true }),
+      huecos("GetRect.", String.raw`int local = gid - firstGid;
+r.x = margin + (tileWidth + spacing) * (local ▢ columns);
+r.y = margin + (tileHeight + spacing) * (local ▢ columns);`, ["%", "/", "*", "+"], ["%", "/"], "Resto = columna; cociente = fila."),
+      test("Con margin = 1 y spacing = 2, tiles de 16 px. ¿x del tile de la columna 3?", ["48", "55", "49", "54"], 1, "1 + (16 + 2) · 3 = 55."),
+      test("Si olvidas restar firstgid en un tileset con firstgid 49…", ["Nada", "Dibujas el tile equivocado (49 posiciones más adelante, a menudo fuera de la imagen)", "Crash seguro", "Se ve negro"], 1, ""),
+      huecos("¿Qué tileset contiene este gid?", String.raw`TileSet* Map::GetTilesetFromTileId(int gid) const
+{
+    for (TileSet* ts : mapData.tilesets)
+        if (gid >= ts->firstGid && gid ▢ ts->firstGid + ts->▢)
+            return ts;
+    return nullptr;
+}`, ["<", "tileCount", "<=", "columns", "tileWidth"], ["<", "tileCount"], "firstGid ≤ gid < firstGid + tileCount."),
+      escribe("Escribe la x en el mundo de la columna `i` (usa `mapData.tileWidth`).", ["i * mapData.tileWidth", "mapData.tileWidth * i"], "MapToWorld.", { ph: "i * ..." }),
+      escribe("Escribe la columna de la casilla que contiene el píxel `x` (int) del mundo.", ["x / mapData.tileWidth"], "División entera: 70 / 32 = 2.", { ph: "x / ..." }),
+      test("Píxel del mundo (70, 100), tiles de 32. ¿Casilla?", ["(2, 3)", "(3, 4)", "(2, 4)", "(70, 100)"], 0, "70 / 32 = 2, 100 / 32 = 3."),
+      orden("Bucle para dibujar una capa.", [
+        "for (int j = 0; j < mapData.height; j++)",
+        "for (int i = 0; i < mapData.width; i++)",
+        "int gid = layer->Get(i, j);",
+        "if (gid == 0) continue;",
+        "TileSet* ts = GetTilesetFromTileId(gid);",
+        "SDL_Rect rect = ts->GetRect(gid);",
+        "Vector2D pos = MapToWorld(i, j);",
+        "render->DrawTexture(ts->texture, (int)pos.getX(), (int)pos.getY(), &rect);"], ""),
+      bug("El nivel solo dibuja bien la parte del primer tileset; el resto sale con tiles raros.", [
+        "int gid = layer->Get(i, j);",
+        "if (gid == 0) continue;",
+        "TileSet* ts = mapData.tilesets.front();",
+        "SDL_Rect rect = ts->GetRect(gid);"], 2, "Hay que usar `GetTilesetFromTileId(gid)` en vez del primero."),
+      test("Si cambias el orden de las capas en Tiled, ¿qué pasa en tu juego?", ["Nada", "Cambia el orden de dibujado: lo que va después se ve encima", "Se rompe el mapa", "Cambian las colisiones"], 1, ""),
+      test("¿Dónde se libera la memoria de las capas y tilesets?", ["En el destructor de SDL", "En Map::CleanUp: delete de cada TileSet y MapLayer (y sus propiedades), y UnLoad de las texturas", "No hace falta", "En Scene"], 1, ""),
+      huecos("Solo los tiles visibles (culling) en horizontal.", String.raw`int firstCol = std::max(0, (int)(-camera.x) / tileWidth);
+int lastCol  = std::▢(mapData.width - 1, (int)(-camera.x + screenW) / tileWidth);
+for (int i = firstCol; i ▢ lastCol; i++) ...`, ["min", "<=", "max", "<", "abs"], ["min", "<="], "La cámara es negativa: −camera.x es el borde izquierdo en el mundo."),
+      test("¿Qué tamaño tiene el mapa en píxeles (100 × 22 tiles de 32)?", ["100 × 22", "3200 × 704", "132 × 54", "320 × 220"], 1, "Útil para limitar la cámara."),
+      bug("Crash al pedir una propiedad que una capa no tiene.", [
+        "Properties::Property* p = layer->properties.GetProperty(\"Draw\");",
+        "if (p->value == false) continue;"], 1, "GetProperty devuelve nullptr si no existe: `if (p == nullptr || !p->value) continue;`.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-box2d3", titulo: "Box2D 3 en tu motor", icono: "b2",
+    desc: "La API en C de Box2D 3: ids en vez de punteros, defs por defecto, b2MakeBox, Step con subpasos, eventos de contacto y sensores después del Step, salto y suelo.",
+    chuleta: [
+      ["Crear", "```b2WorldDef wd = b2DefaultWorldDef();\nwd.gravity = { 0.0f, 10.0f };          // Y hacia abajo, como la pantalla\nb2WorldId world = b2CreateWorld(&wd);\n\nb2BodyDef bd = b2DefaultBodyDef();\nbd.type = b2_dynamicBody;\nbd.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };\nb2BodyId body = b2CreateBody(world, &bd);\nb2Polygon box = b2MakeBox(PIXEL_TO_METERS(w) * 0.5f, PIXEL_TO_METERS(h) * 0.5f);\nb2ShapeDef sd = b2DefaultShapeDef();\nb2CreatePolygonShape(body, &sd, &box);\nb2Body_SetUserData(body, pbody);```"],
+      ["Eventos (después del Step)", "```b2World_Step(world, 1.0f / 60.0f, 4);\nb2ContactEvents ce = b2World_GetContactEvents(world);\nfor (int i = 0; i < ce.beginCount; ++i) {\n    b2ContactBeginTouchEvent& e = ce.beginEvents[i];\n    if (!b2Shape_IsValid(e.shapeIdA) || !b2Shape_IsValid(e.shapeIdB)) continue;\n    PhysBody* a = (PhysBody*)b2Body_GetUserData(b2Shape_GetBody(e.shapeIdA));\n    PhysBody* b = (PhysBody*)b2Body_GetUserData(b2Shape_GetBody(e.shapeIdB));\n    if (a && a->listener) a->listener->OnCollision(a, b);\n    if (b && b->listener) b->listener->OnCollision(b, a);\n}```"]
+    ],
+    preguntas: [
+      test("¿Qué es un `b2BodyId` en Box2D 3?", ["Un puntero", "Un pequeño struct identificador que se pasa por valor; las funciones son b2Body_XXX(id, …)", "Un int", "Una clase con métodos"], 1, "Box2D 3 es una API en C: no hay `body->GetPosition()` sino `b2Body_GetPosition(body)`.", { nuevo: true }),
+      test("¿Por qué gravity = { 0, 10 } en este motor y no { 0, -10 }?", ["Error", "En pantalla la Y crece hacia abajo: así no hay que invertir nada al dibujar", "Por la Luna", "Es lo mismo"], 1, ""),
+      huecos("Un cuerpo dinámico.", String.raw`b2BodyDef bd = ▢();
+bd.type = ▢;
+bd.position = { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) };
+b2BodyId body = b2CreateBody(world, &bd);`, ["b2DefaultBodyDef", "b2_dynamicBody", "b2BodyDef", "b2_staticBody", "DYNAMIC"], ["b2DefaultBodyDef", "b2_dynamicBody"], "Empieza siempre por la def por defecto: rellena todos los campos con valores válidos."),
+      escribe("Escribe la caja de 32×64 px con b2MakeBox (usa PIXEL_TO_METERS; recuerda que recibe medias medidas).", [/^b2MakeBox\(PIXEL_TO_METERS\(32\)\*0\.5f,PIXEL_TO_METERS\(64\)\*0\.5f\)$/, /^b2MakeBox\(PIXEL_TO_METERS\(16\),PIXEL_TO_METERS\(32\)\)$/, /^b2MakeBox\(PIXEL_TO_METERS\(32\)\/2,PIXEL_TO_METERS\(64\)\/2\)$/], "Igual que SetAsBox en Box2D 2: media anchura y media altura.", { ph: "b2MakeBox(..." }),
+      test("PIXELS_PER_METER = 32. Un jugador de 32×48 px mide en Box2D…", ["32 × 48 m", "1 × 1,5 m", "0,5 × 0,75 m", "16 × 24 m"], 1, "Box2D está afinado para objetos de 0,1 a 10 m."),
+      orden("Crear la forma y enlazar el cuerpo con tu PhysBody.", [
+        "b2Polygon box = b2MakeBox(halfW, halfH);",
+        "b2ShapeDef sd = b2DefaultShapeDef();",
+        "sd.density = 1.0f;",
+        "b2CreatePolygonShape(body, &sd, &box);",
+        "b2Body_SetUserData(body, pbody);"], ""),
+      test("¿Qué es el `4` en `b2World_Step(world, dt, 4)`?", ["Las iteraciones de velocidad", "Los subpasos (substeps): más = más estable y más caro", "Los fps", "La gravedad"], 1, "En Box2D 2 eran velocityIterations y positionIterations."),
+      test("En Box2D 3, ¿cuándo te enteras de los contactos?", ["Durante el Step, con un listener", "Después del Step, leyendo b2World_GetContactEvents / GetSensorEvents", "Nunca", "En Draw"], 1, "Ventaja: el mundo no está bloqueado cuando procesas los eventos."),
+      huecos("Recorre los contactos que empiezan.", String.raw`b2ContactEvents ce = b2World_GetContactEvents(world);
+for (int i = 0; i < ce.▢; ++i)
+{
+    b2ContactBeginTouchEvent& e = ce.▢[i];
+    ...
+}`, ["beginCount", "beginEvents", "endCount", "endEvents", "size"], ["beginCount", "beginEvents"], ""),
+      test("¿Por qué se comprueba `b2Shape_IsValid` antes de usar un evento?", ["Por estética", "La forma puede haberse destruido entre el Step y tu código: usar un id inválido es un error", "Para el sensor", "Por la gravedad"], 1, ""),
+      test("¿Cómo recuperas tu PhysBody a partir de un shapeId?", ["No se puede", "(PhysBody*)b2Body_GetUserData(b2Shape_GetBody(shapeId))", "shapeId->body", "b2Shape_GetUserData"], 1, ""),
+      huecos("Mover al jugador conservando la caída.", String.raw`b2Vec2 v = b2Body_GetLinearVelocity(pbody->body);
+v.x = 0.0f;
+if (right) v.x = speed;
+if (left)  v.x = -speed;
+b2Body_▢(pbody->body, v);`, ["SetLinearVelocity", "ApplyForce", "SetTransform", "GetLinearVelocity"], ["SetLinearVelocity"], "Si pusieras v.y = 0, el jugador flotaría."),
+      escribe("Escribe el salto: impulso hacia arriba `jumpForce` al centro del cuerpo `pbody->body`.", [/^b2Body_ApplyLinearImpulseToCenter\(pbody->body,(b2Vec2)?\{0(\.0f?|f)?,-jumpForce\},true\)$/], "Arriba es Y negativa.", { ph: "b2Body_ApplyLinearImpulseToCenter(..." }),
+      test("¿Cómo evitas el doble salto infinito?", ["No se puede", "Un bool onGround que se pone true al tocar una plataforma (contacto con normal hacia arriba) y false al saltar", "Bajando la gravedad", "Con KEY_REPEAT"], 1, ""),
+      bug("Teletransportas al jugador al checkpoint y se queda flotando hasta que lo tocas.", [
+        "b2Body_SetTransform(pbody->body, { PIXEL_TO_METERS(x), PIXEL_TO_METERS(y) }, b2Rot_identity);",
+        "b2Body_SetLinearVelocity(pbody->body, { 0.0f, 0.0f });"], 1, "El cuerpo puede estar dormido: añade `b2Body_SetAwake(pbody->body, true);`."),
+      test("¿Qué hace `b2Body_SetGravityScale(body, 0.0f)`?", ["Lo destruye", "Ese cuerpo deja de sentir la gravedad (god mode / volar)", "Lo hace estático", "Nada"], 1, ""),
+      test("Para un sensor en Box2D 3.1 además de `isSensor = true`, ¿qué suele hacer falta?", ["Nada", "Que el sensor y el que lo atraviesa tengan enableSensorEvents = true", "Masa", "Un joint"], 1, "Si tu moneda no detecta al jugador, revisa este flag en las dos formas."),
+      test("¿Qué evita `bd.fixedRotation = true` (o `b2Body_SetFixedRotation`) en el jugador de un plataformas?", ["Que se mueva", "Que vuelque al chocar con esquinas", "Que salte", "Que caiga"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-colmapa", titulo: "Colisiones desde el mapa", icono: "▧",
+    desc: "Capa de colisiones con propiedad Collision, un cuerpo estático por tile u objeto, ColliderType (plataforma, pinchos, muerte, meta), OnCollision y god mode.",
+    chuleta: [
+      ["Desde la capa de tiles", "```if (layer->properties.GetProperty(\"Collision\") && layer->properties.GetProperty(\"Collision\")->value)\n    for (int j = 0; j < mapData.height; j++)\n        for (int i = 0; i < mapData.width; i++) {\n            int gid = layer->Get(i, j);\n            if (gid == 0) continue;\n            Vector2D pos = MapToWorld(i, j);\n            PhysBody* c = physics->CreateRectangle(pos.getX() + tw / 2, pos.getY() + th / 2, tw, th, STATIC);\n            c->ctype = (gid == spikesGid) ? ColliderType::SPIKES : ColliderType::PLATFORM;\n            colliders.push_back(c);\n        }```"],
+      ["OnCollision del jugador", "```void Player::OnCollision(PhysBody* a, PhysBody* b)\n{\n    switch (b->ctype) {\n    case ColliderType::PLATFORM: isJumping = false; break;\n    case ColliderType::ITEM:     coins++; audio->PlayFx(coinFx); ((Item*)b->listener)->pendingToDelete = true; break;\n    case ColliderType::SPIKES:   if (!invulnerable) Hurt(); break;\n    case ColliderType::DEATH:    Die(); break;\n    default: break;\n    }\n}```"]
+    ],
+    preguntas: [
+      test("¿Por qué una capa de colisiones separada en vez de usar la capa visual?", ["Es obligatorio", "Puedes decorar con libertad y marcar solo lo sólido; además puede no dibujarse (Draw = false)", "Ocupa menos", "Es más rápido de dibujar"], 1, "", { nuevo: true }),
+      huecos("Centro del collider de la casilla (i, j).", String.raw`Vector2D pos = MapToWorld(i, j);
+PhysBody* c = physics->CreateRectangle(pos.getX() + tw ▢ 2, pos.getY() + th / 2, tw, th, ▢);`, ["/", "STATIC", "*", "DYNAMIC", "KINEMATIC"], ["/", "STATIC"], "MapToWorld da la esquina; Box2D quiere el centro."),
+      test("Un nivel de 100 × 22 con un cuerpo por tile sólido crea miles de cuerpos. ¿Mejora típica?", ["Ninguna", "Unir tiles contiguos de una fila en un único rectángulo (o dibujar las colisiones como objetos en Tiled)", "Hacerlos dinámicos", "Quitar la física"], 1, ""),
+      test("¿Para qué sirve `ctype` en PhysBody?", ["Para el color", "Para saber QUÉ has tocado en OnCollision (plataforma, item, pinchos…)", "Para la masa", "Para el filtrado"], 1, ""),
+      orden("El switch de OnCollision del jugador.", [
+        "switch (physB->ctype)",
+        "{",
+        "case ColliderType::PLATFORM: isJumping = false; break;",
+        "case ColliderType::ITEM: coins++; break;",
+        "case ColliderType::DEATH: Die(); break;",
+        "default: break;",
+        "}"], ""),
+      test("¿Cómo distingues pinchos de plataformas si los dos están en la capa de colisiones?", ["No se puede", "Por el gid del tileset de metadatos (cada tipo un tile distinto) o con capas/propiedades separadas", "Por el color", "Por la posición"], 1, ""),
+      test("Un foso de muerte instantánea es mejor como…", ["Plataforma", "Sensor de tipo DEATH: no frena, solo avisa", "Cuerpo dinámico", "Item"], 1, ""),
+      bug("Al tocar pinchos pierdes todas las vidas de golpe.", [
+        "case ColliderType::SPIKES:",
+        "    lives--;",
+        "    break;"], 1, "Mientras sigas tocándolos pueden llegar más contactos, y el siguiente salto vuelve a tocarlos. Añade invulnerabilidad: `if (!invulnerable) { lives--; invulnerable = true; invTimer.Start(); }` y quítala tras 0,5–1 s."),
+      escribe("Escribe la condición para quitar la invulnerabilidad tras 1 segundo (`invTimer.ReadSec()`).", [/^if\(invulnerable&&invTimer\.ReadSec\(\)>=?1(\.0f?|f)?\)(invulnerable=false)?$/, /^if\(invTimer\.ReadSec\(\)>=?1(\.0f?|f)?\)(invulnerable=false)?$/], "", { ph: "if (invulnerable && ...)" }),
+      test("¿Qué es el god mode típico de las entregas (F10)?", ["Más vidas", "Volar sin gravedad y sin morir: gravityScale 0 y se ignoran SPIKES/DEATH", "Más velocidad", "Saltar más"], 1, ""),
+      huecos("God mode.", String.raw`if (input->GetKey(SDL_SCANCODE_F10) == KEY_DOWN) godMode = ▢godMode;
+b2Body_SetGravityScale(pbody->body, godMode ? ▢ : 1.0f);`, ["!", "0.0f", "-", "2.0f", "~"], ["!", "0.0f"], ""),
+      test("¿Dónde se libera la lista de colliders del mapa?", ["Nunca", "En Map::CleanUp: physics->DeletePhysBody de cada uno y luego clear", "En el destructor de Box2D", "En Player"], 1, "Si cambias de nivel sin borrarlos, chocarás con paredes invisibles."),
+      test("Detectar el suelo por la normal del contacto es mejor que solo `isJumping = false` al tocar una plataforma porque…", ["es igual", "chocar con una pared o un techo también es una plataforma: solo cuenta si la normal apunta hacia arriba", "es más rápido", "Box2D lo exige"], 1, ""),
+      test("La meta del nivel (GOAL) debería…", ["Ser una plataforma", "Ser un sensor que pide cambiar de nivel al final del frame (no en el callback)", "Destruir el mapa ahí mismo", "Reiniciar el juego"], 1, ""),
+      bug("Crash al recoger una moneda.", [
+        "case ColliderType::ITEM:",
+        "    coins++;",
+        "    Engine::GetInstance().entityManager->DestroyEntity((Item*)physB->listener);",
+        "    break;"], 2, "No destruyas en mitad del procesamiento de colisiones: marca `pendingToDelete = true`.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-animcam", titulo: "Animaciones y cámara", icono: "🎞",
+    desc: "Frames, duración por frame, loop y ping-pong, AnimationSet con nombres, cambiar de animación según el estado, cámara que sigue al jugador y límites del mapa.",
+    chuleta: [
+      ["Animation::Update", "```void Animation::Update(float dtMs)\n{\n    timer += dtMs;\n    while (timer >= frameDurationMs) {\n        timer -= frameDurationMs;\n        current++;\n        if (current >= (int)frames.size())\n            current = loop ? 0 : (int)frames.size() - 1;\n    }\n}```"],
+      ["Cámara (negativa)", "```int target = (int)player->position.getX() - screenW / 2;   // borde izquierdo deseado (mundo)\ntarget = std::max(0, std::min(target, mapW - screenW));       // no salir del mapa\nrender->camera.x = -target;```"]
+    ],
+    preguntas: [
+      test("Animación de 6 frames a 100 ms por frame. ¿Cuánto dura un ciclo?", ["100 ms", "600 ms", "60 ms", "6 s"], 1, "", { nuevo: true }),
+      huecos("Avanza el frame con el tiempo.", String.raw`timer += dtMs;
+while (timer ▢ frameDurationMs)
+{
+    timer ▢ frameDurationMs;
+    current++;
+}`, [">=", "-=", "=", "+=", "<"], [">=", "-="], "Restar (no poner a 0) conserva el tiempo sobrante: la animación no se retrasa."),
+      test("¿Por qué `while` y no `if`?", ["Es igual", "Si un frame del juego dura más que dos frames de la animación, hay que avanzar varios", "Por estilo", "Para el loop"], 1, ""),
+      escribe("Escribe la línea que, al pasarse del último frame, vuelve al 0 si `loop` o se queda en el último si no.", [/^current=loop\?0:\(int\)frames\.size\(\)-1$/, /^current=loop\?0:frames\.size\(\)-1$/, /^current=\(loop\)\?0:\(int\)frames\.size\(\)-1$/], "", { ph: "current = loop ? ..." }),
+      test("¿Qué es una animación ping-pong?", ["Muy rápida", "Va 0→N y luego N→0 en vez de saltar al principio", "Aleatoria", "Que no se repite"], 1, ""),
+      test("¿Cuándo usas `HasFinished()`?", ["Siempre", "Para animaciones sin loop (muerte, ataque): cambias de estado cuando acaba", "Para el idle", "Nunca"], 1, ""),
+      bug("La animación de correr se queda congelada en el primer frame mientras corres.", [
+        "if (vx != 0) anims.SetCurrent(\"run\");",
+        "else anims.SetCurrent(\"idle\");",
+        "anims.Update(dt);"], 0, "Si SetCurrent reinicia la animación cada vez que se llama (aunque ya sea la actual), nunca avanza. SetCurrent debe no hacer nada si el nombre es el mismo."),
+      huecos("SetCurrent sin reiniciar si ya está puesta.", String.raw`void AnimationSet::SetCurrent(const std::string& name)
+{
+    if (currentName ▢ name) return;
+    currentName = name;
+    animations[name].▢();
+}`, ["==", "Reset", "!=", "Update", "Play"], ["==", "Reset"], ""),
+      test("¿De dónde sale cada animación en el handout?", ["Del código", "De un .tsx de Tiled con <animation><frame tileid duration/>…</animation>, leído con pugixml", "De un GIF", "De SDL"], 1, "Así ajustas la velocidad de cada frame sin recompilar."),
+      test("Del tileid de un frame al rectángulo: ¿qué fórmula?", ["Otra distinta", "La misma que GetRect del mapa (columna = id % columns, fila = id / columns), sin firstgid porque en el .tsx los ids son locales", "id * 32", "No hay fórmula"], 1, ""),
+      orden("Cámara que sigue al jugador sin salir del mapa.", [
+        "int target = (int)player->position.getX() - screenW / 2;",
+        "if (target < 0) target = 0;",
+        "if (target > mapW - screenW) target = mapW - screenW;",
+        "render->camera.x = -target;"], "La cámara del motor es negativa."),
+      test("La cámara va al revés: el jugador va a la derecha y el mundo también. ¿Causa?", ["Box2D", "Has olvidado el signo negativo de la cámara", "La animación", "El dt"], 1, ""),
+      escribe("Escribe la cámara suavizada en x: `camera.x` se acerca a `-target` con el factor `0.1f`.", [/^camera\.x\+=\(-target-camera\.x\)\*0\.1f$/, /^camera\.x=camera\.x\+\(-target-camera\.x\)\*0\.1f$/, /^render->camera\.x\+=\(-target-render->camera\.x\)\*0\.1f$/], "Lerp. (Recuerda que camera.x debería ser float para movimientos pequeños).", { ph: "camera.x += ..." }),
+      test("¿Qué es una deadzone de cámara?", ["Un sitio donde mueres", "Un rectángulo central donde el jugador se mueve sin que la cámara se mueva", "El borde del mapa", "El HUD"], 1, ""),
+      test("¿Dónde guardas el sentido (izquierda/derecha) para el flip del sprite?", ["En la animación", "En el jugador: se actualiza solo cuando hay input horizontal (si no, conserva el último)", "En la cámara", "En Box2D"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-bfs", titulo: "Pathfinding I: BFS", icono: "⊞",
+    desc: "El mapa como grafo, la frontera con std::queue, visited, vecinos, IsWalkable, breadcrumbs y reconstruir el camino.",
+    chuleta: [
+      ["BFS", "```std::queue<Vector2D> frontier;  std::vector<Vector2D> visited;  std::vector<Vector2D> breadcrumbs;\nfrontier.push(start); visited.push_back(start); breadcrumbs.push_back(start);\nwhile (!frontier.empty()) {\n    Vector2D current = frontier.front(); frontier.pop();\n    if (current == goal) break;                       // salida temprana\n    for (Vector2D n : Neighbors(current))            // arriba, abajo, izquierda, derecha\n        if (IsWalkable(n) && !Contains(visited, n)) {\n            frontier.push(n); visited.push_back(n);\n            breadcrumbs.push_back(current);           // de dónde vengo para llegar a n\n        }\n}```"],
+      ["Reconstruir", "Desde la meta, sigue las migas (padre de cada casilla) hasta el inicio y luego **invierte** la lista: `std::reverse(path.begin(), path.end())`."]
+    ],
+    preguntas: [
+      test("¿Qué estructura usa BFS para la frontera?", ["Una pila (stack)", "Una cola (queue): primero en entrar, primero en salir", "Un map", "Una cola de prioridad"], 1, "Con una pila sería DFS: encuentra un camino, pero no el más corto.", { nuevo: true }),
+      test("¿Qué garantiza BFS en una rejilla donde todos los pasos cuestan lo mismo?", ["Nada", "El camino con menos pasos", "El camino más bonito", "El más rápido de calcular siempre"], 1, ""),
+      huecos("Saca el siguiente de la frontera.", String.raw`Vector2D current = frontier.▢();
+frontier.▢();`, ["front", "pop", "top", "back", "push"], ["front", "pop"], "En std::queue, pop no devuelve nada: primero lees con front."),
+      orden("Bucle principal de BFS.", [
+        "while (!frontier.empty())",
+        "{",
+        "    Vector2D current = frontier.front();",
+        "    frontier.pop();",
+        "    for (Vector2D n : Neighbors(current))",
+        "        if (IsWalkable(n) && !Visited(n)) { frontier.push(n); visited.push_back(n); }",
+        "}"], ""),
+      test("¿Por qué se marca como visitada al METERLA en la frontera y no al sacarla?", ["Da igual", "Para no meter la misma casilla varias veces en la cola (trabajo repetido y caminos raros)", "Por memoria", "Por la cámara"], 1, ""),
+      escribe("Escribe el vecino de arriba de `current` (Vector2D con getX/getY; la Y crece hacia abajo).", [/^Vector2D\(current\.getX\(\),current\.getY\(\)-1\)$/, /^Vector2D\{current\.getX\(\),current\.getY\(\)-1\}$/], "", { ph: "Vector2D(current.getX(), ...)" }),
+      huecos("IsWalkable.", String.raw`bool Pathfinding::IsWalkable(int x, int y)
+{
+    if (x < 0 || y < 0 || x >= map->width || y ▢ map->height) return ▢;
+    int gid = navLayer->Get(x, y);
+    return gid != blockedGid;
+}`, [">=", "false", ">", "true", "=="], [">=", "false"], "Primero los límites: si no, lees fuera del array."),
+      test("¿Qué son las breadcrumbs (migas)?", ["Las casillas bloqueadas", "Para cada casilla visitada, desde cuál se llegó: permiten reconstruir el camino", "La frontera", "El coste"], 1, ""),
+      orden("Reconstruye el camino.", [
+        "Vector2D current = goal;",
+        "while (current != start)",
+        "{",
+        "    path.push_back(current);",
+        "    current = CameFrom(current);",
+        "}",
+        "path.push_back(start);",
+        "std::reverse(path.begin(), path.end());"], "Se recorre al revés (meta → inicio) y luego se invierte."),
+      bug("El enemigo camina hacia atrás por el camino.", [
+        "while (current != start) { path.push_back(current); current = CameFrom(current); }",
+        "path.push_back(start);",
+        "return path;"], 2, "Falta `std::reverse(path.begin(), path.end());` antes de devolverlo."),
+      test("¿Qué ventaja tiene salir del bucle cuando `current == goal`?", ["Ninguna", "No exploras el resto del mapa: mucho más rápido", "El camino es más corto", "Evita crashes"], 1, ""),
+      test("Para un enemigo de plataformas (no vuela), ¿qué casilla es caminable?", ["Cualquiera vacía", "Vacía y con suelo justo debajo", "Cualquiera", "Las sólidas"], 1, "Por eso hay una capa de navegación propia o una regla en IsWalkable."),
+      test("Buscar en un std::vector si ya está visitada es O(n). ¿Mejora?", ["Ninguna", "Un array de bool del tamaño del mapa indexado por y * width + x (O(1))", "Ordenar el vector", "Usar una pila"], 1, ""),
+      test("¿Cada cuánto recalculas el camino al jugador?", ["Cada frame (siempre)", "Cada cierto tiempo (p. ej. 0,5 s) o cuando el jugador cambia de casilla", "Nunca", "Solo al cargar"], 1, "BFS en un mapa grande cada frame y por cada enemigo es caro."),
+      escribe("Escribe la condición para que un BFS se pare: frontera vacía (usa `frontier`).", ["frontier.empty()"], "", { ph: "frontier..." })
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-dijkstra", titulo: "Pathfinding II: Dijkstra y A*", icono: "⋆",
+    desc: "Costes por casilla, priority_queue con greater, costSoFar, relajar vecinos, la heurística Manhattan y A*.",
+    chuleta: [
+      ["Dijkstra", "```using Nodo = std::pair<int, Vector2D>;   // (coste, casilla)\nstd::priority_queue<Nodo, std::vector<Nodo>, std::greater<Nodo>> frontier;\nfrontier.push({ 0, start }); costSoFar[start] = 0;\nwhile (!frontier.empty()) {\n    Vector2D current = frontier.top().second; frontier.pop();\n    if (current == goal) break;\n    for (Vector2D n : Neighbors(current)) {\n        int newCost = costSoFar[current] + MovementCost(n);\n        if (!costSoFar.count(n) || newCost < costSoFar[n]) {\n            costSoFar[n] = newCost; cameFrom[n] = current;\n            frontier.push({ newCost, n });\n        }\n    }\n}```"],
+      ["A*", "Igual, pero la prioridad es `newCost + Heuristic(n, goal)`. Manhattan: `|dx| + |dy|` (4 direcciones)."]
+    ],
+    preguntas: [
+      test("¿Qué añade Dijkstra respecto a BFS?", ["Nada", "Cada casilla puede costar distinto (agua 5, camino 1) y encuentra el camino de menor COSTE", "Es más rápido siempre", "Va en diagonal"], 1, "", { nuevo: true }),
+      test("std::priority_queue por defecto saca…", ["el menor", "el MAYOR", "el primero en entrar", "uno al azar"], 1, "Por eso se usa std::greater: así saca el de menor coste."),
+      huecos("La frontera de Dijkstra.", String.raw`std::priority_queue<Nodo, std::vector<Nodo>, std::▢<Nodo>> frontier;
+Vector2D current = frontier.▢().second;
+frontier.pop();`, ["greater", "top", "less", "front", "back"], ["greater", "top"], "priority_queue usa top (no front)."),
+      test("¿Qué guarda costSoFar[n]?", ["La heurística", "El menor coste conocido para llegar desde el inicio hasta n", "La distancia a la meta", "Si es caminable"], 1, ""),
+      orden("Relajar un vecino.", [
+        "int newCost = costSoFar[current] + MovementCost(n);",
+        "if (!costSoFar.count(n) || newCost < costSoFar[n])",
+        "{",
+        "    costSoFar[n] = newCost;",
+        "    cameFrom[n] = current;",
+        "    frontier.push({ newCost, n });",
+        "}"], ""),
+      test("Camino A: 4 casillas de hierba (coste 1). Camino B: 2 casillas de agua (coste 5). ¿Cuál elige Dijkstra?", ["B (menos pasos)", "A (coste 4 frente a 10)", "Los dos", "Ninguno"], 1, ""),
+      test("¿Qué es una heurística en A*?", ["El coste real", "Una estimación de lo que falta hasta la meta; guía la búsqueda hacia ella", "Una casilla bloqueada", "La cola"], 1, ""),
+      escribe("Escribe la distancia Manhattan entre `a` y `b` (Vector2D, usa abs, getX, getY).", [/^abs\(a\.getX\(\)-b\.getX\(\)\)\+abs\(a\.getY\(\)-b\.getY\(\)\)$/, /^std::abs\(a\.getX\(\)-b\.getX\(\)\)\+std::abs\(a\.getY\(\)-b\.getY\(\)\)$/, /^fabs\(a\.getX\(\)-b\.getX\(\)\)\+fabs\(a\.getY\(\)-b\.getY\(\)\)$/, /^fabsf\(a\.getX\(\)-b\.getX\(\)\)\+fabsf\(a\.getY\(\)-b\.getY\(\)\)$/], "", { ph: "abs(...) + abs(...)" }),
+      huecos("Prioridad en A*.", String.raw`int newCost = costSoFar[current] + MovementCost(n);
+int priority = newCost ▢ Heuristic(n, ▢);
+frontier.push({ priority, n });`, ["+", "goal", "-", "start", "*"], ["+", "goal"], "f = g + h."),
+      test("Si la heurística siempre vale 0, A* se comporta como…", ["BFS", "Dijkstra", "DFS", "No funciona"], 1, ""),
+      test("¿Por qué Manhattan y no la distancia euclídea para 4 direcciones?", ["Es más bonita", "Es exacta cuando solo te mueves en horizontal y vertical, y nunca sobreestima", "Es más lenta", "No hay razón"], 1, "Una heurística que sobreestima puede dar caminos que no son los más cortos."),
+      bug("Dijkstra devuelve caminos largos y absurdos.", [
+        "std::priority_queue<Nodo> frontier;",
+        "frontier.push({ 0, start });"], 0, "Sin std::greater, la cola saca el de MAYOR coste primero."),
+      test("Para usar Vector2D como clave de std::map (costSoFar), ¿qué necesitas?", ["Nada", "Un operator< para Vector2D (o usar el índice y * width + x como clave)", "Un hash", "Herencia"], 1, "El índice entero suele ser lo más simple."),
+      escribe("Escribe el índice entero único de la casilla (x, y) en un mapa de ancho `width`.", ["y * width + x", "x + y * width", "width * y + x"], "", { ph: "y * width + x" }),
+      test("¿Qué algoritmo para un slime que te persigue en un nivel con zonas lentas?", ["BFS", "A* con costes por casilla (o Dijkstra)", "DFS", "Ninguno"], 1, "")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-enemigos", titulo: "Enemigos: patrulla, persecución y estados", icono: "☠",
+    desc: "Máquina de estados del enemigo, distancia de visión, seguir un camino casilla a casilla, pisotear y morir, y guardar quién murió.",
+    chuleta: [
+      ["Estados", "```enum class EnemyState { PATROL, CHASE, DEAD };\nswitch (state) {\ncase EnemyState::PATROL:\n    Patrol();\n    if (DistanceToPlayer() < sight) state = EnemyState::CHASE;\n    break;\ncase EnemyState::CHASE:\n    FollowPath();\n    if (DistanceToPlayer() > sight * 1.5f) state = EnemyState::PATROL;\n    break;\ncase EnemyState::DEAD: break;\n}```"],
+      ["Seguir el camino", "```Vector2D next = MapToWorld(path[1].getX(), path[1].getY());   // path[0] es donde estoy\nfloat dx = next.getX() + tileW / 2 - position.getX();\nv.x = (dx > 2) ? speed : (dx < -2) ? -speed : 0.0f;```"]
+    ],
+    preguntas: [
+      test("¿Por qué el enemigo vuelve a PATROL con `sight * 1.5f` y no con `sight`?", ["Error", "Histéresis: evita que cambie de estado cada frame cuando el jugador está justo en el límite", "Por velocidad", "Por la cámara"], 1, "", { nuevo: true }),
+      huecos("Cambio de estado al ver al jugador.", String.raw`case EnemyState::PATROL:
+    Patrol();
+    if (DistanceToPlayer() ▢ sight) state = EnemyState::▢;
+    break;`, ["<", "CHASE", ">", "DEAD", "PATROL"], ["<", "CHASE"], ""),
+      test("¿Por qué se usa `path[1]` y no `path[0]` para moverse?", ["Por error", "path[0] es la casilla donde ya está el enemigo", "path[0] es la meta", "Da igual"], 1, ""),
+      bug("El enemigo tiembla a izquierda y derecha al llegar a una casilla.", [
+        "float dx = targetX - position.getX();",
+        "v.x = (dx > 0) ? speed : -speed;"], 1, "Sin margen nunca está exactamente en 0: añade una zona muerta `(dx > 2) ? speed : (dx < -2) ? -speed : 0`."),
+      escribe("Escribe la distancia entre el enemigo (`position`) y el jugador (`p`) con sqrtf (Vector2D con getX/getY).", [/^sqrtf\(\(p\.getX\(\)-position\.getX\(\)\)\*\(p\.getX\(\)-position\.getX\(\)\)\+\(p\.getY\(\)-position\.getY\(\)\)\*\(p\.getY\(\)-position\.getY\(\)\)\)$/, /^sqrtf\(\(position\.getX\(\)-p\.getX\(\)\)\*\(position\.getX\(\)-p\.getX\(\)\)\+\(position\.getY\(\)-p\.getY\(\)\)\*\(position\.getY\(\)-p\.getY\(\)\)\)$/], "Para comparar con un radio basta comparar distancias al cuadrado (sin sqrt), que es más barato.", { ph: "sqrtf(...)" }),
+      test("¿Cómo detectas que el jugador ha pisado al enemigo (y no que le ha tocado de lado)?", ["Por la velocidad", "Los pies del jugador están por encima del centro del enemigo en el momento del contacto", "Con un raycast siempre", "No se puede"], 1, "Es más fiable que mirar la velocidad, que Box2D ya ha cambiado al resolver el choque."),
+      orden("Pisotear a un enemigo.", [
+        "case ColliderType::ENEMY:",
+        "    if (feetY < enemyCenterY) {",
+        "        enemy->state = EnemyState::DEAD;",
+        "        b2Body_SetLinearVelocity(pbody->body, { v.x, -bounce });",
+        "    }",
+        "    else Hurt();",
+        "    break;"], "Rebote al pisarlo, daño si es lateral."),
+      test("Al morir el enemigo, ¿qué haces con su cuerpo?", ["Lo destruyes en el callback", "Pasas a DEAD, reproduces la animación de muerte y luego marcas pendingToDelete", "Nada", "Lo haces dinámico"], 1, ""),
+      test("¿Cómo guardas en la partida qué enemigos están muertos?", ["Por su posición", "Por su id del objeto en Tiled (único y estable)", "Por su índice en la lista", "No se puede"], 1, "El índice puede cambiar si borras uno."),
+      test("Un enemigo volador y uno terrestre: ¿cambia el pathfinding?", ["No", "Sí: el volador puede usar cualquier casilla vacía; el terrestre solo las que tienen suelo", "Solo cambia la velocidad", "Solo la animación"], 1, ""),
+      huecos("Recalcula el camino cada medio segundo.", String.raw`if (pathTimer.▢() >= 0.5f)
+{
+    path = pathfinding->Find(myTile, playerTile);
+    pathTimer.▢();
+}`, ["ReadSec", "Start", "ReadMSec", "Stop", "Reset"], ["ReadSec", "Start"], ""),
+      test("¿Qué es una patrulla entre dos puntos?", ["Persecución", "Moverse a un lado hasta llegar a un límite (o a un borde/pared) y dar la vuelta", "Quedarse quieto", "Saltar"], 1, ""),
+      test("El enemigo cae por los bordes de las plataformas al patrullar. ¿Solución?", ["Más gravedad", "Comprobar si la casilla de delante y abajo es sólida; si no, dar la vuelta", "Hacerlo estático", "Ignorarlo"], 1, ""),
+      escribe("Escribe la línea que invierte la dirección (`dir` vale 1 o -1).", ["dir = -dir", "dir *= -1", "dir = dir * -1"], "", { ph: "dir = ..." }),
+      test("En debug (F9), ¿qué conviene dibujar del enemigo?", ["Nada", "Su camino (casillas del path) y su radio de visión", "Solo el sprite", "El HUD"], 1, "Ver lo que piensa la IA ahorra horas.")
+    ]
+  });
+})();
+
+</script>
+<script>
+(function () {
+  const { test, huecos, orden, escribe, bug } = DUO;
+  DUO.unidad({
+    curso: "sdl", id: "sdl-bugs", titulo: "Caza de bugs del plataformas", icono: "🐞",
+    desc: "Los errores reales que salen al programar el motor con SDL3, Tiled y Box2D 3.",
+    chuleta: [
+      ["Síntoma → causa", "Ventana negra → falta RenderPresent.\nNo cierra → no procesas SDL_EVENT_QUIT.\nSalta mil veces → KEY_REPEAT en vez de KEY_DOWN.\nVa rapidísimo → dt en ms con velocidades en px/s.\nMitad del mapa sin gráficos → solo lees un tileset.\nTiles equivocados → no restas firstgid.\nSprite desplazado → dibujas desde el centro.\nCámara al revés → signo de la cámara.\nTodo tiene 32 m → falta PIXEL_TO_METERS.\nFlota tras teletransporte → falta SetAwake.\nCrash al recoger → borras en OnCollision."]
+    ],
+    preguntas: [
+      bug("Todo cae a cámara lenta y el jugador parece un edificio.", [
+        "bd.position = { (float)x, (float)y };",
+        "b2Polygon box = b2MakeBox(w * 0.5f, h * 0.5f);"], 0, "Faltan las conversiones a metros (PIXEL_TO_METERS) en posición y tamaño. Las dos líneas: la primera es la que falla primero."),
+      bug("El sprite va siempre medio tile desplazado respecto al collider.", [
+        "int x, y;",
+        "pbody->GetPosition(x, y);",
+        "render->DrawTexture(texture, x, y, &frame);"], 2, "GetPosition da el centro: resta la mitad del ancho y alto del frame."),
+      bug("Al cargar el nivel 2 sigues chocando con paredes invisibles del nivel 1.", [
+        "void Scene::LoadLevel2()",
+        "{",
+        "    map->Load(\"Assets/Maps/\", \"Level2.tmx\");",
+        "}"], 2, "Antes de cargar hay que hacer map->CleanUp() (que borra tiles, tilesets y los colliders del mapa) y limpiar entidades del nivel."),
+      bug("El juego va más lento cuanto más tiempo lo juegas.", [
+        "void Player::Update(float dt)",
+        "{",
+        "    SDL_Texture* t = Engine::GetInstance().textures->Load(\"Assets/player.png\");",
+        "    Engine::GetInstance().render->DrawTexture(t, x, y);",
+        "}"], 2, "Cargas la textura cada frame (y nunca la liberas). Cárgala una vez en Start."),
+      bug("La animación va el doble de rápida en un monitor de 120 Hz.", [
+        "void Animation::Update()",
+        "{",
+        "    current++;",
+        "    if (current >= frames.size()) current = 0;",
+        "}"], 2, "Avanza un frame por frame del juego. Usa un temporizador con dt y la duración de cada frame."),
+      bug("El jugador no puede volver a saltar tras el primer salto.", [
+        "if (GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN && !isJumping) { Jump(); isJumping = true; }",
+        "// OnCollision:",
+        "case ColliderType::ITEM: coins++; break;"], 2, "Falta `case ColliderType::PLATFORM: isJumping = false; break;` en OnCollision."),
+      bug("Crash al cerrar el juego.", [
+        "bool Physics::CleanUp() { b2DestroyWorld(world); return true; }",
+        "bool Player::CleanUp() { physics->DeletePhysBody(pbody); return true; }"], 1, "Si Physics hace CleanUp antes (orden inverso mal pensado), el Player intenta borrar un cuerpo de un mundo ya destruido. Comprueba `b2Body_IsValid` o borra las entidades antes que el mundo."),
+      bug("El mapa sale completamente negro pero no hay errores.", [
+        "pugi::xml_parse_result result = mapFile.load_file((path + name).c_str());",
+        "if (result == NULL) LOG(\"Could not load map\");",
+        "for (pugi::xml_node ts = mapFile.child(\"map\").child(\"tilesets\"); ts; ts = ts.next_sibling(\"tileset\"))"], 2, "El nodo se llama \"tileset\" (singular). child(\"tilesets\") devuelve vacío y el bucle no entra."),
+      bug("El enemigo atraviesa el suelo cuando lo teletransportas al spawn.", [
+        "position = spawn;",
+        "// el cuerpo físico sigue donde estaba"], 0, "Hay que mover el cuerpo: b2Body_SetTransform + SetLinearVelocity a 0 + SetAwake. La posición del sprite se lee del cuerpo cada frame."),
+      bug("Guardas partida y al cargar el jugador aparece en (0, 0).", [
+        "player.append_attribute(\"x\") = position.getX();",
+        "player.append_attribute(\"y\") = position.getY();",
+        "// (no se llama a doc.save_file)"], 2, "Sin `doc.save_file(\"savegame.xml\")` los cambios solo están en memoria."),
+      bug("El salto es más alto a 30 fps que a 144 fps.", [
+        "if (jumping) b2Body_ApplyForceToCenter(pbody->body, { 0, -jumpForce }, true);"], 0, "Una fuerza aplicada cada frame depende de cuántos frames hay. El salto se hace con UN impulso al pulsar (KEY_DOWN)."),
+      bug("El HUD se mueve con el mapa.", [
+        "render->DrawTexture(hudBar, 10, 10, nullptr, 0.0f);",
+        "render->DrawTexture(coinIcon, 0, 0);"], 1, "DrawTexture aplica la cámara: usa speed = 0 para el HUD (`DrawTexture(coinIcon, 0, 0, nullptr, 0.0f)`)."),
+      test("¿Qué herramienta te ahorra más tiempo cuando la física hace cosas raras?", ["Reinstalar Box2D", "El modo debug (F9) que dibuja todos los colliders encima del juego", "Bajar los fps", "Comentar código al azar"], 1, ""),
+      test("Un crash ocurre solo en Release. ¿Sospechoso típico?", ["El compilador", "Una variable sin inicializar (en Debug suele valer un patrón, en Release basura)", "SDL", "La textura"], 1, "Inicializa siempre: `bool isJumping = false;`."),
+      test("LOG imprime \"Map Level1.tmx: 100x22 tiles, 2 tilesets, 3 layers\", pero no se ve nada. ¿Primer sospechoso?", ["pugixml", "Las capas tienen Draw=false o no se lee la propiedad / la textura del tileset no cargó (ruta)", "Box2D", "El audio"], 1, "")
     ]
   });
 })();
